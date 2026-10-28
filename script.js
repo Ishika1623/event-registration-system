@@ -1,0 +1,314 @@
+const $=s=>document.querySelector(s);
+const LS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
+const SV=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ADMIN_PIN='1234';
+const ORG_PIN='2222';
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Published events. In a real deployment, move approved events into this list (or an events.json file) and redeploy.
+const SEED=[
+{id:'e1',name:'TechFest 2026',type:'Fest',club:'Tech Club',date:'2026-10-24',deadline:'2026-10-20',venue:'Main Auditorium',seats:120,fee:0,team:false,upi:'',desc:'Two days of hackathon, robotics demos and project showcases.'},
+{id:'e2',name:'Web Dev Workshop',type:'Workshop',club:'Coding Club',date:'2026-10-14',deadline:'2026-10-12',venue:'Lab 3, CSE Block',seats:40,fee:100,team:false,upi:'codingclub@upi',desc:'Build and deploy your first JavaScript site in one afternoon. Bring a laptop.'},
+{id:'e3',name:'Inter-Branch Cricket',type:'Sports meet',club:'Sports Committee',date:'2026-11-02',deadline:'2026-10-28',venue:'College Ground',seats:16,fee:200,team:true,upi:'sports@upi',desc:'Knockout tournament. Teams of 5 to 11 players.'},
+{id:'e4',name:'Cyber Safety Seminar',type:'Seminar',club:'Faculty Cell',date:'2026-10-16',deadline:'2026-10-15',venue:'Seminar Hall 2',seats:80,fee:0,team:false,upi:'',desc:'Staying safe online: phishing, passwords and privacy.'}
+];
+
+// ---- DEMO DATA: 9 extra Fests + 9 extra Workshops so each section has 10 events. Delete this block for real use. ----
+const mk=(t,arr)=>arr.map((a,i)=>({id:'d'+t[0].toLowerCase()+i,name:a[0],type:t,club:a[1],date:a[2],deadline:a[3],venue:a[4],seats:a[5],fee:a[6],team:!!a[7],upi:a[6]?'club@upi':'',desc:a[8]}));
+const DEMO=mk('Fest',[
+['Cultural Night','Cultural Club','2026-10-30','2026-10-26','Open Air Theatre',300,0,0,'Music, dance and drama performances by students.'],
+['Fusion Dance Battle','Dance Society','2026-11-04','2026-10-31','Main Auditorium',60,100,1,'Team dance competition with live judging.'],
+['Battle of Bands','Music Club','2026-11-07','2026-11-03','Open Air Theatre',24,150,1,'Bands compete for the campus title.'],
+['Food Carnival','Student Council','2026-11-10','2026-11-07','Central Lawn',500,0,0,'Stalls, games and live music all evening.'],
+['Hackathon 24','Tech Club','2026-11-14','2026-11-09','Innovation Lab',90,200,1,'Build a working prototype in 24 hours.'],
+['Fashion Show','Fashion Club','2026-11-18','2026-11-14','Main Auditorium',40,100,1,'Themed ramp walk with student designers.'],
+['Art Exhibition','Fine Arts Society','2026-11-21','2026-11-18','Gallery Hall',150,0,0,'Paintings, sketches and sculptures by students.'],
+['Entrepreneurship Summit','E-Cell','2026-11-25','2026-11-21','Seminar Hall 1',120,50,0,'Pitch contest and talks by young founders.'],
+['Annual Day Gala','Student Council','2026-12-05','2026-11-30','Main Auditorium',400,0,0,'Awards, performances and a closing show.']
+]).concat(mk('Workshop',[
+['Python for Beginners','Coding Club','2026-10-12','2026-10-09','Lab 2, CSE Block',40,100,0,'Write your first programs step by step.'],
+['UI/UX Design Basics','Design Club','2026-10-15','2026-10-12','Lab 4',35,150,0,'Wireframes, colour and layout using free tools.'],
+['Git and GitHub','Coding Club','2026-10-19','2026-10-16','Lab 3, CSE Block',45,0,0,'Version control for team projects.'],
+['Arduino Basics','Robotics Club','2026-10-22','2026-10-19','Electronics Lab',30,250,0,'Build and program a simple sensor circuit.'],
+['Public Speaking','Literary Society','2026-10-27','2026-10-23','Seminar Hall 2',50,0,0,'Speak with confidence and handle questions.'],
+['Photography Walk','Photo Club','2026-11-01','2026-10-28','Campus Gardens',25,100,0,'Composition and light, shot on your phone or camera.'],
+['Resume and LinkedIn','Placement Cell','2026-11-06','2026-11-03','Seminar Hall 1',100,0,0,'Build a resume recruiters actually read.'],
+['Data Analysis with Excel','Analytics Club','2026-11-12','2026-11-09','Lab 5',40,100,0,'Clean data, pivot tables and charts.'],
+['Intro to Machine Learning','AI Club','2026-11-19','2026-11-15','Lab 1, CSE Block',35,200,0,'Train and test your first model.']
+]));
+SEEDTIMES();
+const allEvents=()=>SEED.concat(DEMO,LS('approved',[]));
+function SEEDTIMES(){SEED.concat(DEMO).forEach((e,i)=>{if(!e.time)e.time=['10:00','14:00','09:30','11:00','16:00'][i%5]})}
+const getEv=id=>allEvents().find(e=>e.id===id);
+
+
+// ---------- login / logout ----------
+let S=LS('session',null),loginRole='student',loginNote='',pendingReg=null;
+const TABS={guest:[['events','Events']],student:[['events','Events'],['tickets','My tickets']],organizer:[['events','Events'],['org','Organizer']],admin:[['events','Events'],['admin','Admin']]};
+const role=()=>S?S.role:'guest';
+function applyAuth(){
+  $('#nav').innerHTML=TABS[role()].map(t=>`<button data-v="${t[0]}">${t[1]}</button>`).join('');
+  $('#auth').innerHTML=S?`<span class="who">${esc(S.name)} <small>${S.role}</small></span><button class="btn sm sec" onclick="doLogout()">Log out</button>`
+    :`<button class="btn sm" onclick="loginFromHeader()">Log in</button>`;
+}
+function loginFromHeader(){pendingReg=null;loginNote='';openLogin('student')}
+function openLogin(rl){
+  loginRole=rl||'student';
+  const R=[['student','Student'],['organizer','Organizer'],['admin','Admin']];
+  const f={
+   student:`<label for="l_name">Full name</label><input id="l_name" autocomplete="name"><div class="row"><div><label for="l_reg">Registration number</label><input id="l_reg"></div><div><label for="l_roll">Roll number</label><input id="l_roll"></div></div>`,
+   organizer:`<label for="l_club">Club or department</label><input id="l_club"><label for="l_pin">Organizer PIN</label><input id="l_pin" type="password" inputmode="numeric" autocomplete="off"><p class="mut">Demo PIN: 2222</p>`,
+   admin:`<label for="l_pin">Admin PIN</label><input id="l_pin" type="password" inputmode="numeric" autocomplete="off"><p class="mut">Demo PIN: 1234</p>`}[loginRole];
+  openModal(`<h2 style="margin-top:0">Log in</h2>${loginNote?`<p class="mut">${esc(loginNote)}</p>`:''}
+  <div class="seg">${R.map(x=>`<button type="button" class="${x[0]===loginRole?'on':''}" onclick="openLogin('${x[0]}')">${x[1]}</button>`).join('')}</div>
+  <form class="f" id="lf" novalidate>${f}<div id="l_err"></div><p><button class="btn" type="submit">Log in</button></p></form>`);
+  $('#lf').onsubmit=ev=>{ev.preventDefault();doLogin()};
+}
+function doLogin(){
+  const v=id=>$('#'+id)?$('#'+id).value.trim():'',errs=[];let s=null;
+  if(loginRole==='student'){
+    const reg=v('l_reg').toUpperCase(),roll=v('l_roll').toUpperCase();
+    if(!/^[A-Za-z][A-Za-z .'-]{2,}$/.test(v('l_name')))errs.push('Enter your full name (letters only).');
+    if(!/^[A-Z0-9\/-]{5,20}$/.test(reg))errs.push('Registration number must be 5 to 20 letters or digits.');
+    if(!/^[A-Z0-9\/-]{2,20}$/.test(roll))errs.push('Enter a valid roll number.');
+    if(reg&&reg===roll)errs.push('Registration number and roll number must be different.');
+    s={role:'student',name:v('l_name'),reg,roll};
+  }else if(loginRole==='organizer'){
+    if(v('l_club').length<2)errs.push('Enter your club or department name.');
+    if(v('l_pin')!==ORG_PIN)errs.push('Wrong organizer PIN.');
+    s={role:'organizer',name:v('l_club'),club:v('l_club')};
+  }else{
+    if(v('l_pin')!==ADMIN_PIN)errs.push('Wrong admin PIN.');
+    s={role:'admin',name:'Admin'};
+  }
+  if(errs.length){$('#l_err').innerHTML='<div class="err">'+errs.map(esc).join('<br>')+'</div>';return}
+  const go=pendingReg;S=s;SV('session',S);closeModal();applyAuth();
+  if(S.role==='student'&&go){show('events');openReg(go)}
+  else show(S.role==='organizer'?'org':S.role==='admin'?'admin':'events');
+}
+function doLogout(){S=null;SV('session',null);pendingReg=null;applyAuth();show('events')}
+
+// ---------- navigation ----------
+function show(v){
+  if(!['events','detail'].concat(TABS[role()].map(t=>t[0])).includes(v))v='events';
+  ['events','detail','tickets','org','admin'].forEach(x=>$('#v-'+x).classList.toggle('hide',x!==v));
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===(v==='detail'?'events':v)));
+  if(v==='events')renderEvents(); if(v==='tickets')renderMine(); if(v==='admin')renderAdmin(); if(v==='org')renderOrg();
+}
+$('#nav').onclick=e=>{if(e.target.dataset.v)show(e.target.dataset.v)};
+function openModal(h){$('#mbody').innerHTML=h;$('#modal').classList.add('open')}
+function closeModal(){$('#modal').classList.remove('open');pendingReg=null}
+$('#mx').onclick=closeModal;
+$('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+
+// ---------- events list ----------
+const TYPES=[
+ {t:'Fest',c:'#f26a21',d:'Big campus celebrations'},
+ {t:'Workshop',c:'#2b2b2e',d:'Hands-on learning sessions'},
+ {t:'Seminar',c:'#0f766e',d:'Talks and guest lectures'},
+ {t:'Club activity',c:'#3b5bdb',d:'Meetups and club events'},
+ {t:'Sports meet',c:'#2f9e44',d:'Matches and tournaments'}
+];
+let curType='';const LIMIT=6,openT={};
+function card(e,regs,c){
+  const left=e.seats-regs.filter(r=>r.eid===e.id).length;
+  const closed=new Date(e.deadline+'T23:59:59')<new Date(), full=left<=0;
+  const d=new Date(e.date+'T00:00:00');
+  return `<article class="ev" style="--tc:${c}" onclick="showEvent('${e.id}')"><div class="date"><b>${d.getDate()}</b><span>${MON[d.getMonth()]}</span></div>
+  <div class="in"><div><span class="tag ${e.fee?'paid':'free'}">${e.fee?'₹'+e.fee:'Free'}</span>${e.team?'<span class="tag">Team</span>':''}</div>
+  <h3><button class="lnk">${esc(e.name)}</button></h3>
+  <p class="mut">${esc(e.club)} · ${esc(e.venue)}<br>${Math.max(left,0)} of ${e.seats} seats left · register by ${esc(e.deadline)}</p>
+  <p class="mut">${esc(e.desc)}</p>
+  <button class="btn sm" ${closed||full?'disabled':''} onclick="event.stopPropagation();openReg('${e.id}')">${closed?'Registration closed':full?'Event full':'Register'}</button></div></article>`;
+}
+function renderEvents(){
+  const q=$('#q').value.toLowerCase(),regs=LS('regs',[]);
+  const all=allEvents().filter(e=>(e.name+e.club+e.venue+e.desc).toLowerCase().includes(q)).sort((a,b)=>a.date.localeCompare(b.date));
+  $('#chips').innerHTML=[{t:'',n:'All'}].concat(TYPES.map(x=>({t:x.t,n:x.t}))).map(x=>{
+    const n=x.t?all.filter(e=>e.type===x.t).length:all.length;
+    return `<button class="chip ${curType===x.t?'on':''}" onclick="setType('${x.t}')">${x.n} <span>${n}</span></button>`;
+  }).join('');
+  const html=TYPES.filter(x=>!curType||x.t===curType).map(x=>{
+    const list=all.filter(e=>e.type===x.t);
+    if(!list.length)return '';
+    const wrap=curType===x.t;
+    return `<section class="group" style="--tc:${x.c}"><div class="ghead"><h2>${x.t}</h2><p class="mut">${x.d} · ${list.length} event${list.length>1?'s':''}</p></div>
+    ${wrap?`<div class="grid">${list.map(e=>card(e,regs,x.c)).join('')}</div>`:`<div class="rowbox"><button class="arr l" aria-label="Scroll left" onclick="scrollRow(this,-1)">‹</button><div class="rowx">${list.map(e=>card(e,regs,x.c)).join('')}</div><button class="arr r" aria-label="Scroll right" onclick="scrollRow(this,1)">›</button></div>`}</section>`;
+  }).join('');
+  $('#evList').innerHTML=html||'<p class="empty">No events match your search. Clear the search or choose another type.</p>';
+}
+function setType(t){curType=t;renderEvents()}
+function scrollRow(b,d){const row=b.parentElement.querySelector('.rowx');row.scrollBy({left:d*row.clientWidth*0.8,behavior:'smooth'})}
+$('#q').oninput=renderEvents;
+
+
+// ---------- event detail page ----------
+const fmtDate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const fmtTime=t=>{if(!t)return 'To be announced';const p=t.split(':').map(Number);return (p[0]%12||12)+':'+String(p[1]).padStart(2,'0')+' '+(p[0]<12?'AM':'PM')};
+function showEvent(id,noPush){
+  renderDetail(id);show('detail');window.scrollTo(0,0);
+  if(!noPush){try{history.pushState({e:id},'','#event-'+id)}catch(x){}}
+}
+window.addEventListener('popstate',ev=>{ev.state&&ev.state.e?showEvent(ev.state.e,true):show('events')});
+function goBack(){if(history.state&&history.state.e)history.back();else show('events')}
+function renderDetail(id){
+  const e=getEv(id),box=$('#v-detail');
+  if(!e){box.innerHTML='<p class="empty">This event was not found.</p>';return}
+  const t=TYPES.find(x=>x.t===e.type)||{c:'#f26a21'},regs=LS('regs',[]);
+  const n=regs.filter(x=>x.eid===id).length,left=Math.max(e.seats-n,0),pct=Math.min(100,Math.round(n/e.seats*100));
+  const closed=new Date(e.deadline+'T23:59:59')<new Date(),full=left<=0;
+  const days=Math.ceil((new Date(e.deadline+'T23:59:59')-new Date())/864e5);
+  const status=closed?'Registration is closed':full?'This event is full':days<=1?'Registration closes today':days+' days left to register';
+  const rel=allEvents().filter(x=>x.type===e.type&&x.id!==id).slice(0,3);
+  box.innerHTML=`<p><button class="btn sec sm" onclick="goBack()">← Back to events</button></p>
+  <div class="dhero" style="--tc:${t.c}"><span class="tag">${esc(e.type)}</span><span class="tag ${e.fee?'paid':'free'}">${e.fee?'₹'+e.fee:'Free'}</span>${e.team?'<span class="tag">Team event</span>':''}
+  <h2>${esc(e.name)}</h2><p>Hosted by ${esc(e.club)}</p></div>
+  <div class="dgrid"><div class="dmain">
+   <div class="panel"><h2>About this event</h2><p>${esc(e.desc)||'Details will be shared by the organizer.'}</p></div>
+   <div class="panel"><h2>Event details</h2><dl class="dl">
+    <dt>Date</dt><dd>${fmtDate(e.date)}</dd><dt>Start time</dt><dd>${fmtTime(e.time)}</dd>
+    <dt>Venue</dt><dd>${esc(e.venue)}</dd><dt>Organizer</dt><dd>${esc(e.club)}</dd>
+    <dt>Type</dt><dd>${esc(e.type)}${e.team?' (team entry)':' (individual entry)'}</dd>
+    <dt>Fee</dt><dd>${e.fee?'₹'+e.fee+' per '+(e.team?'team':'person'):'Free'}</dd>
+    <dt>Register by</dt><dd>${fmtDate(e.deadline)}</dd></dl></div>
+   <div class="panel"><h2>How registration works</h2><ol class="steps">
+    <li>Fill in your name, registration number, roll number, email and phone.</li>
+    ${e.fee?'<li>Pay using the UPI QR and enter the transaction ID. The admin verifies it.</li>':''}
+    <li>Get your ticket with a QR code and save or print it.</li>
+    <li>Show the ticket at the venue entrance.</li></ol></div>
+   ${rel.length?`<div class="panel"><h2>More ${esc(e.type)} events</h2><div class="rels">${rel.map(x=>`<button class="rel" onclick="showEvent('${x.id}')"><b>${esc(x.name)}</b><span>${esc(x.date)} · ${esc(x.venue)}</span></button>`).join('')}</div></div>`:''}
+  </div>
+  <aside class="dside panel"><h2>Registration</h2>
+   <p class="big">${left} <small>of ${e.seats} seats left</small></p>
+   <div class="bar2" role="img" aria-label="${pct}% of seats taken"><i style="width:${pct}%"></i></div>
+   <p class="mut">${esc(status)}</p>
+   <p><button class="btn" style="width:100%" ${closed||full?'disabled':''} onclick="openReg('${e.id}')">${closed?'Registration closed':full?'Event full':e.fee?'Register and pay ₹'+e.fee:'Register now'}</button></p>
+   <p><button class="btn sec sm" onclick="addCal('${e.id}')">Add to calendar</button> <button class="btn sec sm" onclick="copyLink(this)">Copy link</button></p>
+  </aside></div>`;
+}
+function addCal(id){
+  const e=getEv(id),ie=s=>String(s).replace(/[\\,;]/g,'\\$&'),tm=(e.time||'10:00').split(':');
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT','UID:'+e.id+'@lpu-events','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',
+   'DTSTART:'+e.date.replace(/-/g,'')+'T'+tm[0].padStart(2,'0')+tm[1]+'00','SUMMARY:'+ie(e.name),'LOCATION:'+ie(e.venue),'DESCRIPTION:'+ie(e.desc),'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  download(e.id+'.ics',ics,'text/calendar');
+}
+function copyLink(b){
+  const u=location.href,done=()=>{const o=b.textContent;b.textContent='Link copied';setTimeout(()=>b.textContent=o,1500)};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(done,()=>{b.textContent='Copy failed'});else b.textContent='Copy not supported';
+}
+
+// ---------- registration ----------
+function openReg(id){
+  const e=getEv(id);
+  if(!S){pendingReg=id;loginNote='Log in as a student to register for events.';openLogin('student');return}
+  if(S.role!=='student'){openModal('<h2 style="margin-top:0">Students only</h2><p>Only students can register for events. Log out and log in as a student to register.</p>');return}
+  openModal(`<h2 style="margin-top:0">Register for ${esc(e.name)}</h2>
+  <form class="f" id="rf" novalidate>
+  <label for="r_name">Full name</label><input id="r_name" value="${esc(S.name)}" readonly>
+  <div class="row"><div><label for="r_reg">Registration number</label><input id="r_reg" value="${esc(S.reg)}" readonly></div>
+  <div><label for="r_roll">Roll number</label><input id="r_roll" value="${esc(S.roll)}" readonly></div>
+  <div><label for="r_mail">Email</label><input id="r_mail" type="email" autocomplete="email"></div>
+  <div><label for="r_ph">Phone (10 digits)</label><input id="r_ph" inputmode="numeric" maxlength="10"></div>
+  <div><label for="r_br">Branch (optional)</label><input id="r_br"></div>
+  <div><label for="r_yr">Year (optional)</label><select id="r_yr"><option value="">Select</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div></div>
+  ${e.team?`<div class="row"><div><label for="r_tn">Team name (optional)</label><input id="r_tn"></div><div><label for="r_ts">Team size</label><input id="r_ts" type="number" min="2" max="11"></div></div>`:''}
+  ${e.fee?`<div class="panel" style="margin-top:12px;text-align:center"><b>Pay ₹${e.fee} to ${esc(e.upi||'the organizer')}</b>
+  <div class="qr" id="payqr" style="display:flex;justify-content:center;margin:8px 0"></div>
+  <label for="r_tx" style="text-align:left">Payment transaction ID</label><input id="r_tx" placeholder="12-digit UPI reference"></div>`:''}
+  <div id="r_err"></div>
+  <p><button class="btn" type="submit">${e.fee?'Submit registration':'Register now'}</button></p></form>`);
+  if(e.fee&&window.QRCode)new QRCode($('#payqr'),{text:`upi://pay?pa=${e.upi}&pn=${encodeURIComponent(e.name)}&am=${e.fee}&cu=INR`,width:150,height:150});
+  $('#rf').onsubmit=ev=>{ev.preventDefault();submitReg(e)};
+}
+function submitReg(e){
+  const v=id=>($('#'+id)?$('#'+id).value.trim():''),errs=[],regs=LS('regs',[]);
+  const reg=v('r_reg').toUpperCase(),roll=v('r_roll').toUpperCase();
+  if(!/^[A-Za-z][A-Za-z .'-]{2,}$/.test(v('r_name')))errs.push('Enter your full name (letters only, at least 3 characters).');
+  if(!/^[A-Z0-9\/-]{5,20}$/.test(reg))errs.push('Registration number must be 5 to 20 letters or digits.');
+  if(!/^[A-Z0-9\/-]{2,20}$/.test(roll))errs.push('Enter a valid roll number.');
+  if(reg&&reg===roll)errs.push('Registration number and roll number must be different.');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('r_mail')))errs.push('Enter a valid email address.');
+  if(!/^[6-9]\d{9}$/.test(v('r_ph')))errs.push('Phone must be 10 digits and start with 6, 7, 8 or 9.');
+  if(e.team){const n=+v('r_ts');if(!(n>=2&&n<=11))errs.push('Team size must be between 2 and 11.')}
+  if(e.fee&&v('r_tx').length<8)errs.push('Enter the payment transaction ID (at least 8 characters).');
+  if(regs.some(r=>r.eid===e.id&&r.reg===reg))errs.push('This registration number is already registered for this event.');
+  if(regs.filter(r=>r.eid===e.id).length>=e.seats)errs.push('Sorry, all seats are taken.');
+  if(new Date(e.deadline+'T23:59:59')<new Date())errs.push('Registration for this event has closed.');
+  if(errs.length){$('#r_err').innerHTML='<div class="err">'+errs.map(esc).join('<br>')+'</div>';return}
+  const r={rid:'REG-'+e.id.toUpperCase().slice(0,4)+'-'+Math.random().toString(36).slice(2,7).toUpperCase(),eid:e.id,ename:e.name,
+    name:v('r_name'),reg,roll,email:v('r_mail'),phone:v('r_ph'),branch:v('r_br'),year:v('r_yr'),
+    team:e.team?v('r_tn'):'',size:e.team?v('r_ts'):'',tx:v('r_tx'),status:e.fee?'Payment pending':'Confirmed',attended:false,at:new Date().toISOString()};
+  regs.push(r);SV('regs',regs);renderEvents();if(!$('#v-detail').classList.contains('hide'))renderDetail(e.id);showTicket(r.rid,true);
+}
+function showTicket(rid,fresh){
+  const r=LS('regs',[]).find(x=>x.rid===rid),e=getEv(r.eid)||{date:'',venue:''};
+  openModal(`${fresh?'<div class="msg">Registration successful. Save or print your ticket.</div>':''}
+  <div class="ticket" id="ticketBox"><div class="top"><small style="color:var(--acc)">Lovely Professional University</small><br><b>${esc(r.ename)}</b><br>${esc(e.date)} · ${esc(e.venue)}</div>
+  <div class="bd"><b style="font-size:1.1rem">${esc(r.name)}</b><br><span class="mut">Reg: ${esc(r.reg)} · Roll: ${esc(r.roll)}</span>
+  ${r.team?`<br><span class="mut">Team: ${esc(r.team)} (${esc(r.size)} members)</span>`:''}
+  <div class="qr" id="tqr"></div><b>${esc(r.rid)}</b><br><span class="tag ${r.status==='Confirmed'?'free':'paid'}">${esc(r.status)}</span></div></div>
+  <p style="text-align:center"><button class="btn" onclick="window.print()">Print / save as PDF</button></p>`);
+  const t=`${r.rid}|${r.name}|${r.reg}|${r.ename}`;
+  if(window.QRCode)new QRCode($('#tqr'),{text:t,width:150,height:150});else $('#tqr').textContent='[QR needs internet to load]';
+}
+function renderMine(){
+  const regs=LS('regs',[]).filter(r=>S&&r.reg===S.reg);
+  $('#myRegs').innerHTML=regs.length?`<div class="scroll"><table><tr><th>Event</th><th>Name</th><th>Ticket ID</th><th>Status</th><th></th></tr>`+
+  regs.map(r=>`<tr><td>${esc(r.ename)}</td><td>${esc(r.name)}</td><td>${esc(r.rid)}</td><td>${esc(r.status)}</td><td><button class="btn sm sec" onclick="showTicket('${r.rid}')">View</button></td></tr>`).join('')+'</table></div>'
+  :'<p>You have not registered for any event yet. Open the Events tab to find one.</p>';
+}
+
+// ---------- organizer ----------
+$('#orgForm').onsubmit=ev=>{
+  ev.preventDefault();
+  const v=id=>$('#'+id).value.trim(),errs=[],fee=+v('o_fee')||0,seats=+v('o_seats');
+  if(v('o_name').length<3)errs.push('Enter the event name.');
+  if(!v('o_club'))errs.push('Enter the club or department.');
+  if(!v('o_date')||!v('o_dead'))errs.push('Choose the event date and registration deadline.');
+  else if(v('o_dead')>v('o_date'))errs.push('The registration deadline must be on or before the event date.');
+  if(!v('o_venue'))errs.push('Enter the venue.');
+  if(!(seats>=1))errs.push('Seat limit must be at least 1.');
+  if(fee>0&&!/^[\w.-]+@[\w]+$/.test(v('o_upi')))errs.push('Enter a valid UPI ID for a paid event.');
+  if(errs.length){$('#o_err').innerHTML='<div class="err">'+errs.map(esc).join('<br>')+'</div>';return}
+  const e={id:'u'+Date.now().toString(36),name:v('o_name'),type:v('o_type'),club:v('o_club'),date:v('o_date'),deadline:v('o_dead'),venue:v('o_venue'),time:v('o_time'),seats,fee,team:v('o_team')==='1',upi:v('o_upi'),desc:v('o_desc')};
+  const p=LS('pending',[]);p.push(e);SV('pending',p);
+  $('#o_err').innerHTML='';$('#orgForm').reset();renderOrg();
+  const json=JSON.stringify(e);
+  $('#o_out').innerHTML=`<div class="msg">Request saved. Download it and send the file to the admin.</div><button class="btn sec" id="dl">Download request file</button>`;
+  $('#dl').onclick=()=>download('event-request-'+e.id+'.json',json,'application/json');
+};
+function renderOrg(){
+  $('#o_club').value=S&&S.club?S.club:'';$('#o_club').readOnly=true;
+  const mine=LS('pending',[]).map(e=>[e,'Waiting']).concat(LS('approved',[]).map(e=>[e,'Approved'])).filter(x=>S&&x[0].club===S.club);
+  $('#o_list').innerHTML=mine.length?'<h2 style="margin-top:16px">Your requests</h2>'+mine.map(x=>`<p style="margin:4px 0"><b>${esc(x[0].name)}</b> <span class="mut">${esc(x[0].date)}</span> <span class="tag ${x[1]==='Approved'?'free':'paid'}">${x[1]==='Approved'?'Approved':'Waiting for approval'}</span></p>`).join(''):'';
+}
+function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
+
+// ---------- admin ----------
+function renderAdmin(){
+  const on=S&&S.role==='admin';
+  $('#aPanel').classList.toggle('hide',!on);if(!on)return;
+  const p=LS('pending',[]);
+  $('#pend').innerHTML=p.length?p.map((e,i)=>`<div style="border-bottom:1px solid var(--bd);padding:8px 0"><b>${esc(e.name)}</b> <span class="mut">${esc(e.type)} · ${esc(e.date)} · ${esc(e.venue)} · ${e.seats} seats · ${e.fee?'₹'+e.fee:'Free'}</span><br>
+  <button class="btn sm" onclick="decide(${i},true)">Approve</button> <button class="btn sm bad" onclick="decide(${i},false)">Reject</button></div>`).join(''):'<p class="mut">No events are waiting for approval.</p>';
+  const r=LS('regs',[]);
+  $('#regTable').innerHTML=r.length?`<table><tr><th>Ticket</th><th>Event</th><th>Name</th><th>Reg / Roll</th><th>Phone</th><th>Status</th><th>Attended</th></tr>`+
+  r.map((x,i)=>`<tr><td>${esc(x.rid)}</td><td>${esc(x.ename)}</td><td>${esc(x.name)}</td><td>${esc(x.reg)} / ${esc(x.roll)}</td><td>${esc(x.phone)}</td>
+  <td>${esc(x.status)}${x.status!=='Confirmed'?` <button class="btn sm sec" onclick="verify(${i})">Verify</button>`:''}</td>
+  <td><input type="checkbox" aria-label="Attended" ${x.attended?'checked':''} onchange="attend(${i},this.checked)"></td></tr>`).join('')+'</table>':'<p class="mut">No registrations yet.</p>';
+}
+function decide(i,ok){const p=LS('pending',[]),e=p.splice(i,1)[0];SV('pending',p);if(ok){const a=LS('approved',[]);a.push(e);SV('approved',a)}renderAdmin()}
+function verify(i){const r=LS('regs',[]);r[i].status='Confirmed';SV('regs',r);renderAdmin()}
+function attend(i,c){const r=LS('regs',[]);r[i].attended=c;SV('regs',r)}
+$('#impBtn').onclick=()=>{
+  try{const e=JSON.parse($('#imp').value);if(!e.name||!e.date||!e.deadline||!e.seats)throw 0;const p=LS('pending',[]);p.push(e);SV('pending',p);$('#imp').value='';$('#impMsg').textContent='Added.';renderAdmin()}
+  catch(x){$('#impMsg').textContent='That is not a valid event request file.'}
+};
+$('#csv').onclick=()=>{
+  const r=LS('regs',[]),h=['rid','ename','name','reg','roll','email','phone','branch','year','team','size','tx','status','attended','at'];
+  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+  download('registrations.csv',[h.join(',')].concat(r.map(x=>h.map(k=>q(x[k])).join(','))).join('\n'),'text/csv');
+};
+
+applyAuth();show('events');
