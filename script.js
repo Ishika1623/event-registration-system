@@ -637,9 +637,9 @@ function renderEvents() {
               ? `<div class="grid">${categoryEvents.map((e) => createEventCardHtml(e, registrations, category.c)).join('')}</div>`
               : `
                 <div class="rowbox">
-                  <button type="button" class="arr l" aria-label="Scroll left" onclick="scrollRow(this, -1)">â€¹</button>
+                  <button type="button" class="arr l" aria-label="Scroll left" onclick="scrollRow(this, -1)">&lsaquo;</button>
                   <div class="rowx">${categoryEvents.map((e) => createEventCardHtml(e, registrations, category.c)).join('')}</div>
-                  <button type="button" class="arr r" aria-label="Scroll right" onclick="scrollRow(this, 1)">â€º</button>
+                  <button type="button" class="arr r" aria-label="Scroll right" onclick="scrollRow(this, 1)">&rsaquo;</button>
                 </div>
               `
           }
