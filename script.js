@@ -1666,3 +1666,13 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   applyAuth();
   show('events');
 }
+
+
+// --- 18. Cinematic Header: add .scrolled class on scroll ---
+(function () {
+  const hdr = document.getElementById('site-header');
+  if (!hdr) return;
+  const toggle = () => hdr.classList.toggle('scrolled', window.scrollY > 10);
+  toggle();
+  window.addEventListener('scroll', toggle, { passive: true });
+})();

@@ -1,142 +1,269 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Campus Event Registration and Management System - Lovely Professional University">
-  <title>LPU Campus Events – Event Registration & Management System</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="LPU Campus Events – Discover and register for all events at Lovely Professional University">
+  <title>LPU Campus Events</title>
 
-  <!-- External Stylesheet -->
+  <!-- Fonts: Playfair Display (display serif) + Inter (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
   <link rel="stylesheet" href="style.css">
-
-  <!-- QRCode.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <!-- Application Logic -->
   <script src="script.js" defer></script>
 </head>
+
 <body>
-  <!-- Application Header -->
-  <header>
-    <div class="bar">
-      <div class="logo">
-        <span class="mark">LPU</span>
-        <h1>
-          Campus Events
-          <small>Lovely Professional University</small>
-        </h1>
+
+  <!-- ═══════════════════════════════════════
+     SITE HEADER — transparent overlay nav
+═══════════════════════════════════════ -->
+  <header id="site-header">
+    <div class="nav-inner">
+
+      <!-- Logo -->
+      <div class="logo" aria-label="LPU Campus Events">
+        <div class="logo-icon">
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="18" cy="18" r="17" stroke="currentColor" stroke-width="1.5" />
+            <path d="M10 14 L18 10 L26 14 L26 24 L18 28 L10 24 Z" stroke="currentColor" stroke-width="1.2"
+              fill="none" />
+            <circle cx="18" cy="19" r="3" fill="currentColor" />
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-name">LPU</span>
+          <span class="logo-sub">Campus Events</span>
+        </div>
       </div>
+
+      <!-- Main nav (JS populates buttons) -->
       <nav id="nav" aria-label="Main Navigation"></nav>
-      <div id="auth" class="auth"></div>
+
+      <!-- Auth + hamburger -->
+      <div class="header-right">
+        <div id="auth" class="auth"></div>
+        <button class="hamburger" id="menuBtn" aria-label="Toggle menu" aria-expanded="false">
+          <span></span><span></span>
+        </button>
+      </div>
+
     </div>
   </header>
 
-  <!-- Hero Banner -->
-  <div class="hero">
-    <div>
-      <h2>Find it. Register. Show up.</h2>
-      <p>Fests, workshops, seminars, club activities and sports meets at Lovely Professional University, all in one place.</p>
-    </div>
-  </div>
 
-  <!-- Main View Container -->
-  <main>
-    <!-- VIEW 1: Events Catalog (Default View) -->
-    <section id="v-events">
-      <div class="tools">
-        <input
-          id="q"
-          type="search"
-          placeholder="Search events, clubs or venues"
-          aria-label="Search events"
-        >
+  <!-- ═══════════════════════════════════════
+     CINEMATIC HERO — full viewport
+═══════════════════════════════════════ -->
+  <section class="hero" id="hero">
+
+    <!-- Layered atmospheric background -->
+    <div class="hero-bg" aria-hidden="true">
+      <div class="hero-layer hero-layer--base"></div>
+      <div class="hero-layer hero-layer--glow1"></div>
+      <div class="hero-layer hero-layer--glow2"></div>
+      <div class="hero-layer hero-layer--noise"></div>
+      <div class="hero-layer hero-layer--vignette"></div>
+      <!-- Floating orbs -->
+      <div class="orb orb--1"></div>
+      <div class="orb orb--2"></div>
+      <div class="orb orb--3"></div>
+      <!-- Grid lines -->
+      <div class="hero-grid"></div>
+    </div>
+
+    <!-- Hero content -->
+    <div class="hero-content">
+
+      <!-- Left column: text -->
+      <div class="hero-left">
+
+        <p class="hero-eyebrow">
+          <span class="eyebrow-dot"></span>
+          Lovely Professional University · 2026
+        </p>
+
+        <h1 class="hero-title">
+          Discover<br>
+          beyond <em>imagination.</em>
+        </h1>
+
+        <div class="hero-rule"></div>
+
+        <p class="hero-body">
+          LPU Campus Events brings every fest,<br>
+          workshop, seminar and sports meet<br>
+          into one extraordinary platform.
+        </p>
+
+        <div class="hero-cta">
+          <button class="cta-circle" onclick="document.querySelector('#v-events').scrollIntoView({behavior:'smooth'})"
+            aria-label="Explore events">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+          <span class="cta-label">EXPLORE EVENTS</span>
+        </div>
+
       </div>
 
-      <div id="chips" class="chips" role="group" aria-label="Filter by event category"></div>
+    </div><!-- /hero-content -->
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator" aria-hidden="true">
+      <span class="scroll-text">SCROLL</span>
+      <div class="scroll-line">
+        <div class="scroll-thumb"></div>
+      </div>
+    </div>
+
+  </section><!-- /hero -->
+
+
+  <!-- ═══════════════════════════════════════
+     MAIN APPLICATION VIEWS
+═══════════════════════════════════════ -->
+  <main id="app-main">
+
+    <!-- ── VIEW 1: Events Catalog ── -->
+    <section id="v-events" aria-label="Events Catalog">
+
+      <div class="section-header">
+        <p class="section-label">All Events</p>
+        <h2 class="section-title">What's Happening</h2>
+      </div>
+
+      <!-- Search -->
+      <div class="tools">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input id="q" type="search" placeholder="Search events, clubs or venues…" aria-label="Search events"
+            autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Category chips -->
+      <div id="chips" class="chips" role="group" aria-label="Filter by category"></div>
+
+      <!-- Event listing -->
       <div id="evList"></div>
+
     </section>
 
-    <!-- VIEW 2: Event Detail View -->
-    <section id="v-detail" class="hide"></section>
 
-    <!-- VIEW 3: Student Tickets View -->
-    <section id="v-tickets" class="hide">
+    <!-- ── VIEW 2: Event Detail ── -->
+    <section id="v-detail" class="hide" aria-label="Event Detail"></section>
+
+
+    <!-- ── VIEW 3: My Tickets ── -->
+    <section id="v-tickets" class="hide" aria-label="My Tickets">
       <div class="panel">
-        <h2>My Tickets</h2>
-        <p class="mut">Tickets are stored locally within this browser session.</p>
+        <div class="panel-head">
+          <div>
+            <p class="section-label">Personal</p>
+            <h2 class="panel-title">My Tickets</h2>
+          </div>
+        </div>
+        <p class="muted-text" style="margin-bottom:20px;">
+          Your registrations are saved locally within this browser session.
+        </p>
         <div id="myRegs"></div>
       </div>
     </section>
 
-    <!-- VIEW 4: Organizer Submission View -->
-    <section id="v-org" class="hide">
+
+    <!-- ── VIEW 4: Request an Event ── -->
+    <section id="v-org" class="hide" aria-label="Request an Event">
       <div class="panel f">
-        <h2>Request a New Event</h2>
-        <p class="mut">Your request goes to the campus administrator for approval. Download the request file and send it to the admin.</p>
+        <div class="panel-head">
+          <div>
+            <p class="section-label">Organiser</p>
+            <h2 class="panel-title">Request a New Event</h2>
+          </div>
+        </div>
+        <p class="muted-text" style="margin-bottom:24px;">
+          Submit your event details. The campus administrator will review and approve your request.
+          Download the generated file and forward it to the admin.
+        </p>
 
         <form id="orgForm" novalidate>
-          <label for="o_name">Event name</label>
-          <input id="o_name" placeholder="e.g. Annual Hackathon 2026">
 
-          <div class="row">
-            <div>
-              <label for="o_type">Type</label>
+          <label for="o_name">Event Name</label>
+          <input id="o_name" type="text" placeholder="e.g. Annual Hackathon 2026">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="o_type">Event Type</label>
               <select id="o_type">
                 <option>Fest</option>
                 <option>Workshop</option>
                 <option>Seminar</option>
-                <option>Club activity</option>
-                <option>Sports meet</option>
+                <option>Club Activity</option>
+                <option>Sports Meet</option>
               </select>
             </div>
-            <div>
-              <label for="o_club">Club / department</label>
-              <input id="o_club" placeholder="e.g. Coding Club">
+            <div class="form-group">
+              <label for="o_club">Club / Department</label>
+              <input id="o_club" type="text" placeholder="e.g. Coding Club">
             </div>
-            <div>
-              <label for="o_date">Event date</label>
+            <div class="form-group">
+              <label for="o_date">Event Date</label>
               <input id="o_date" type="date">
             </div>
-            <div>
-              <label for="o_dead">Registration deadline</label>
+            <div class="form-group">
+              <label for="o_dead">Registration Deadline</label>
               <input id="o_dead" type="date">
             </div>
-            <div>
+            <div class="form-group">
               <label for="o_venue">Venue</label>
-              <input id="o_venue" placeholder="e.g. Main Auditorium">
+              <input id="o_venue" type="text" placeholder="e.g. Main Auditorium">
             </div>
-            <div>
-              <label for="o_time">Start time</label>
+            <div class="form-group">
+              <label for="o_time">Start Time</label>
               <input id="o_time" type="time">
             </div>
-            <div>
-              <label for="o_seats">Seat limit</label>
-              <input id="o_seats" type="number" min="1" placeholder="e.g. 100">
+            <div class="form-group">
+              <label for="o_seats">Seat Limit</label>
+              <input id="o_seats" type="number" min="1" placeholder="e.g. 200">
             </div>
-            <div>
-              <label for="o_fee">Fee in ₹ (0 if free)</label>
+            <div class="form-group">
+              <label for="o_fee">Registration Fee ₹ <span class="label-hint">(0 = free)</span></label>
               <input id="o_fee" type="number" min="0" value="0">
             </div>
-            <div>
-              <label for="o_team">Team event?</label>
+            <div class="form-group">
+              <label for="o_team">Team Event?</label>
               <select id="o_team">
-                <option value="0">No, individual</option>
-                <option value="1">Yes, team</option>
+                <option value="0">No — Individual</option>
+                <option value="1">Yes — Team</option>
               </select>
             </div>
           </div>
 
-          <label for="o_upi">UPI ID for payments (paid events only)</label>
-          <input id="o_upi" placeholder="club@upi">
+          <label for="o_upi">UPI ID <span class="label-hint">(paid events only)</span></label>
+          <input id="o_upi" type="text" placeholder="yourclub@upi">
 
           <label for="o_desc">Description</label>
-          <textarea id="o_desc" rows="3" placeholder="Provide a summary of the event..."></textarea>
+          <textarea id="o_desc" rows="4"
+            placeholder="Describe the event, agenda, rules, and any requirements…"></textarea>
 
           <div id="o_err"></div>
 
-          <p style="margin-top: 16px;">
-            <button class="btn" type="submit">Send for approval</button>
-          </p>
+          <div style="margin-top:28px;">
+            <button class="btn" type="submit">Submit for Approval</button>
+          </div>
+
         </form>
 
         <div id="o_out"></div>
@@ -144,49 +271,85 @@
       </div>
     </section>
 
-    <!-- VIEW 5: Admin Panel View -->
-    <section id="v-admin" class="hide">
+
+    <!-- ── VIEW 5: Admin Panel ── -->
+    <section id="v-admin" class="hide" aria-label="Admin Panel">
       <div id="aPanel" class="hide">
+
         <div class="panel">
-          <h2>Events Waiting for Approval</h2>
+          <div class="panel-head">
+            <div>
+              <p class="section-label">Admin</p>
+              <h2 class="panel-title">Pending Approvals</h2>
+            </div>
+          </div>
           <div id="pend"></div>
 
-          <h2 style="margin-top: 24px;">Import an Event Request</h2>
-          <textarea
-            id="imp"
-            rows="3"
-            style="width: 100%; padding: 10px; border: 1px solid var(--bd); border-radius: 8px;"
-            placeholder="Paste the event request JSON here..."
-          ></textarea>
+          <div class="divider" style="margin:28px 0;"></div>
 
-          <p style="margin-top: 10px;">
-            <button class="btn sec sm" id="impBtn" type="button">Add to Waiting List</button>
-            <span id="impMsg" style="margin-left: 10px; font-size: 0.9rem;"></span>
+          <h3 class="sub-heading">Import Event Request</h3>
+          <p class="muted-text" style="margin-bottom:14px;">
+            Paste the JSON from an organiser's downloaded file.
           </p>
+          <textarea id="imp" rows="4" class="code-textarea" placeholder='{"name":"…","type":"…"}'></textarea>
+
+          <div style="display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap;">
+            <button class="btn btn--sm btn--outline" id="impBtn" type="button">Add to Waiting List</button>
+            <span id="impMsg" class="muted-text"></span>
+          </div>
         </div>
 
         <div class="panel">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-            <h2 style="margin: 0;">Attendee Registrations</h2>
-            <button class="btn sec sm" id="csv" type="button">Export to CSV</button>
+          <div class="panel-head" style="margin-bottom:16px;">
+            <div>
+              <p class="section-label">Admin</p>
+              <h2 class="panel-title">Attendee Registrations</h2>
+            </div>
+            <button class="btn btn--sm btn--outline" id="csv" type="button">↓ Export CSV</button>
           </div>
-          <div id="regTable" class="scroll"></div>
+          <div id="regTable" class="scroll-x"></div>
         </div>
+
       </div>
     </section>
+
   </main>
 
-  <!-- Application Footer -->
-  <footer>
-    Student project prototype. Not an official LPU website. Replace the badge with the official logo before any institutional deployment.
+
+  <!-- ═══════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════ -->
+  <footer id="site-footer">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <div class="logo-icon small">
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="17" stroke="currentColor" stroke-width="1.5" />
+            <path d="M10 14 L18 10 L26 14 L26 24 L18 28 L10 24 Z" stroke="currentColor" stroke-width="1.2"
+              fill="none" />
+            <circle cx="18" cy="19" r="3" fill="currentColor" />
+          </svg>
+        </div>
+        <span>LPU Campus Events</span>
+      </div>
+      <p class="footer-note">
+        Student project prototype · Not an official LPU website ·
+        Replace the badge with the official logo before institutional deployment.
+      </p>
+    </div>
   </footer>
 
-  <!-- Global Modal Dialog Container -->
+
+  <!-- ═══════════════════════════════════════
+     GLOBAL MODAL
+═══════════════════════════════════════ -->
   <div id="modal" role="dialog" aria-modal="true" aria-hidden="true">
     <div id="box">
       <button class="x" id="mx" aria-label="Close dialog">&times;</button>
       <div id="mbody"></div>
     </div>
   </div>
+
 </body>
+
 </html>
