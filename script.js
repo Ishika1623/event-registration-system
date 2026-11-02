@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================
  * Campus Event Registration & Management System
  * Core Client-Side Logic & State Management
@@ -554,7 +554,7 @@ function createEventCardHtml(eventItem, registrations, categoryColor) {
       <div class="in">
         <div>
           <span class="tag ${eventItem.fee ? 'paid' : 'free'}">
-            ${eventItem.fee ? 'â‚¹' + eventItem.fee : 'Free'}
+            ${eventItem.fee ? '₹' + eventItem.fee : 'Free'}
           </span>
           ${eventItem.team ? '<span class="tag">Team</span>' : ''}
         </div>
@@ -562,8 +562,8 @@ function createEventCardHtml(eventItem, registrations, categoryColor) {
           <button type="button" class="lnk">${escapeHtml(eventItem.name)}</button>
         </h3>
         <p class="mut">
-          ${escapeHtml(eventItem.club)} Â· ${escapeHtml(eventItem.venue)}<br>
-          ${Math.max(seatsRemaining, 0)} of ${eventItem.seats} seats left Â· register by ${escapeHtml(eventItem.deadline)}
+          ${escapeHtml(eventItem.club)} · ${escapeHtml(eventItem.venue)}<br>
+          ${Math.max(seatsRemaining, 0)} of ${eventItem.seats} seats left · register by ${escapeHtml(eventItem.deadline)}
         </p>
         <p class="mut">${escapeHtml(eventItem.desc)}</p>
         <button
@@ -630,7 +630,7 @@ function renderEvents() {
         <section class="group" style="--tc: ${category.c};">
           <div class="ghead">
             <h2>${category.t}</h2>
-            <p class="mut">${category.d} Â· ${categoryEvents.length} event${categoryEvents.length > 1 ? 's' : ''}</p>
+            <p class="mut">${category.d} · ${categoryEvents.length} event${categoryEvents.length > 1 ? 's' : ''}</p>
           </div>
           ${
             isSingleCategoryView
@@ -754,12 +754,12 @@ function renderDetail(eventId) {
 
   detailContainer.innerHTML = `
     <p>
-      <button type="button" class="btn sec sm" onclick="goBack()">â† Back to events</button>
+      <button type="button" class="btn sec sm" onclick="goBack()">← Back to events</button>
     </p>
 
     <div class="dhero" style="--tc: ${categoryMeta.c};">
       <span class="tag">${escapeHtml(eventItem.type)}</span>
-      <span class="tag ${eventItem.fee ? 'paid' : 'free'}">${eventItem.fee ? 'â‚¹' + eventItem.fee : 'Free'}</span>
+      <span class="tag ${eventItem.fee ? 'paid' : 'free'}">${eventItem.fee ? '₹' + eventItem.fee : 'Free'}</span>
       ${eventItem.team ? '<span class="tag">Team event</span>' : ''}
       <h2>${escapeHtml(eventItem.name)}</h2>
       <p>Hosted by ${escapeHtml(eventItem.club)}</p>
@@ -786,7 +786,7 @@ function renderDetail(eventId) {
             <dt>Type</dt>
             <dd>${escapeHtml(eventItem.type)}${eventItem.team ? ' (team entry)' : ' (individual entry)'}</dd>
             <dt>Fee</dt>
-            <dd>${eventItem.fee ? 'â‚¹' + eventItem.fee + ' per ' + (eventItem.team ? 'team' : 'person') : 'Free'}</dd>
+            <dd>${eventItem.fee ? '₹' + eventItem.fee + ' per ' + (eventItem.team ? 'team' : 'person') : 'Free'}</dd>
             <dt>Register by</dt>
             <dd>${formatDisplayDate(eventItem.deadline)}</dd>
           </dl>
@@ -817,7 +817,7 @@ function renderDetail(eventId) {
                   (relItem) => `
                 <button type="button" class="rel" onclick="showEvent('${relItem.id}')">
                   <b>${escapeHtml(relItem.name)}</b>
-                  <span>${escapeHtml(relItem.date)} Â· ${escapeHtml(relItem.venue)}</span>
+                  <span>${escapeHtml(relItem.date)} · ${escapeHtml(relItem.venue)}</span>
                 </button>
               `
                 )
@@ -850,7 +850,7 @@ function renderDetail(eventId) {
                 : isEventFull
                 ? 'Event full'
                 : eventItem.fee
-                ? 'Register and pay â‚¹' + eventItem.fee
+                ? 'Register and pay ₹' + eventItem.fee
                 : 'Register now'
             }
           </button>
@@ -989,7 +989,7 @@ function openReg(eventId) {
         eventItem.fee
           ? `
         <div class="panel" style="margin-top: 14px; text-align: center;">
-          <b>Pay â‚¹${eventItem.fee} to ${escapeHtml(eventItem.upi || 'the organizer')}</b>
+          <b>Pay ₹${eventItem.fee} to ${escapeHtml(eventItem.upi || 'the organizer')}</b>
           <div class="qr" id="payqr" style="display: flex; justify-content: center; margin: 10px 0;"></div>
           <label for="r_tx" style="text-align: left;">Payment Transaction / UTR ID</label>
           <input id="r_tx" placeholder="12-digit UPI reference ID">
@@ -1150,12 +1150,12 @@ function showTicket(ticketId, isFreshRegistration = false) {
         <b style="font-size: 1.15rem;">${escapeHtml(registrationRecord.ename)}</b>
         <br>
         <span style="font-size: 0.88rem; color: #ececf0;">
-          ${escapeHtml(eventItem.date)} Â· ${escapeHtml(eventItem.venue)}
+          ${escapeHtml(eventItem.date)} · ${escapeHtml(eventItem.venue)}
         </span>
       </div>
       <div class="bd">
         <b style="font-size: 1.15rem; display: block; margin-bottom: 2px;">${escapeHtml(registrationRecord.name)}</b>
-        <span class="mut">Reg: ${escapeHtml(registrationRecord.reg)} Â· Roll: ${escapeHtml(registrationRecord.roll)}</span>
+        <span class="mut">Reg: ${escapeHtml(registrationRecord.reg)} · Roll: ${escapeHtml(registrationRecord.roll)}</span>
         ${
           registrationRecord.team
             ? `<br><span class="mut">Team: ${escapeHtml(registrationRecord.team)} (${escapeHtml(registrationRecord.size)} members)</span>`
@@ -1402,7 +1402,7 @@ function renderAdmin() {
         <div style="border-bottom: 1px solid var(--bd); padding: 12px 0;">
           <strong>${escapeHtml(eventItem.name)}</strong>
           <span class="mut" style="display: block; margin: 2px 0 8px;">
-            ${escapeHtml(eventItem.type)} Â· ${escapeHtml(eventItem.date)} Â· ${escapeHtml(eventItem.venue)} Â· ${eventItem.seats} seats Â· ${eventItem.fee ? 'â‚¹' + eventItem.fee : 'Free'}
+            ${escapeHtml(eventItem.type)} · ${escapeHtml(eventItem.date)} · ${escapeHtml(eventItem.venue)} · ${eventItem.seats} seats · ${eventItem.fee ? '₹' + eventItem.fee : 'Free'}
           </span>
           <button type="button" class="btn sm" onclick="decide(${index}, true)">Approve Event</button>
           <button type="button" class="btn sm bad" onclick="decide(${index}, false)">Reject</button>
@@ -1599,7 +1599,7 @@ window.attend = attend;
 document.addEventListener('DOMContentLoaded', () => {
   applyAuth();
   show('events');
-  new ResizeObserver(syncArrows).observe(document.getElementById('evList'));
+  const evListEl = document.getElementById('evList'); if (evListEl && window.ResizeObserver) { new ResizeObserver(syncArrows).observe(evListEl); }
 });
 
 // Run immediate fallback initialization in case DOMContentLoaded has already fired
