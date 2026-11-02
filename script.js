@@ -651,18 +651,76 @@ function renderEvents() {
   eventsListContainer.innerHTML =
     sectionsHtml ||
     '<p class="empty">No events match your search query. Try clearing the search box or selecting another category.</p>';
-  requestAnimationFrame(syncArrows);
+  requestAnimationFrame(initCarousels);
 }
 
-function syncArrows() {
-  document.querySelectorAll('.rowbox').forEach((box) => {
-    const row = box.querySelector('.rowx');
-    const canScroll = row && row.scrollWidth > row.clientWidth + 1;
-    box.querySelectorAll('.arr').forEach((a) => {
-      a.style.visibility = canScroll ? '' : 'hidden';
-    });
-  });
+// --- Carousel Arrow Visibility -------------------------------------------
+// Tracks active cleanup handles so they are removed before each re-render.
+let _carouselCleanups = [];
+
+/**
+ * Update the left/right arrow visibility for a single .rowx scroll container.
+ * Arrows are hidden with display:none (not just invisible) so they are
+ * completely removed from the layout when they serve no purpose.
+ * A tolerance of 2 px guards against sub-pixel / floating-point scroll drift.
+ */
+function updateArrows(rowx) {
+  const TOLERANCE = 2;
+  const box = rowx.closest('.rowbox');
+  if (!box) return;
+
+  const atStart  = rowx.scrollLeft <= TOLERANCE;
+  const atEnd    = rowx.scrollLeft + rowx.clientWidth >= rowx.scrollWidth - TOLERANCE;
+  const canScroll = rowx.scrollWidth > rowx.clientWidth + TOLERANCE;
+
+  const leftBtn  = box.querySelector('.arr.l');
+  const rightBtn = box.querySelector('.arr.r');
+
+  if (leftBtn)  leftBtn.style.display  = (canScroll && !atStart) ? '' : 'none';
+  if (rightBtn) rightBtn.style.display = (canScroll && !atEnd)   ? '' : 'none';
 }
+
+/**
+ * Attach scroll listeners and a ResizeObserver to every .rowx in the page.
+ * Cleanup callbacks are stored so they can be torn down before the next render.
+ */
+function initCarousels() {
+  // Tear down previous listeners / observers first.
+  _carouselCleanups.forEach((fn) => fn());
+  _carouselCleanups = [];
+
+  const allRowx = document.querySelectorAll('.rowx');
+  if (!allRowx.length) return;
+
+  // Initial pass: set correct visibility immediately after render.
+  allRowx.forEach(updateArrows);
+
+  // Per-container scroll listener.
+  allRowx.forEach((rowx) => {
+    const onScroll = () => updateArrows(rowx);
+    rowx.addEventListener('scroll', onScroll, { passive: true });
+    _carouselCleanups.push(() => rowx.removeEventListener('scroll', onScroll));
+  });
+
+  // ResizeObserver fires when the container or its content changes size
+  // (viewport resize, orientation change, dynamic card additions).
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => allRowx.forEach(updateArrows));
+    allRowx.forEach((rowx) => ro.observe(rowx));
+    _carouselCleanups.push(() => ro.disconnect());
+  } else {
+    // Fallback for browsers without ResizeObserver.
+    const onResize = () => allRowx.forEach(updateArrows);
+    window.addEventListener('resize', onResize);
+    _carouselCleanups.push(() => window.removeEventListener('resize', onResize));
+  }
+}
+
+// Stable window-resize handler for when the events view is already visible
+// (e.g. user resizes without triggering a re-render).
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.rowx').forEach(updateArrows);
+});
 
 function setType(categoryType) {
   currentCategoryFilter = categoryType;
@@ -676,6 +734,7 @@ function scrollRow(buttonElement, direction) {
       left: direction * scrollContainer.clientWidth * 0.8,
       behavior: 'smooth'
     });
+    // Arrow visibility is updated by the scroll event listener in initCarousels.
   }
 }
 
