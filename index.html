@@ -342,6 +342,23 @@
           <div id="regTable" class="scroll-x"></div>
         </div>
 
+        <div class="panel">
+          <div class="panel-head" style="margin-bottom:16px;">
+            <div>
+              <p class="section-label">Admin</p>
+              <h2 class="panel-title">Event Feedback & Reviews</h2>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <select id="fbEventFilter" aria-label="Filter feedback by event" style="width:auto; padding:6px 12px; font-size:0.85rem;" onchange="renderAdminFeedback()">
+                <option value="">All Events</option>
+              </select>
+              <button class="btn btn--sm btn--outline" id="exportFbCsv" type="button">↓ Export Feedback CSV</button>
+            </div>
+          </div>
+          <div id="fbAdminStats" style="margin-bottom:18px;"></div>
+          <div id="fbTable" class="scroll-x"></div>
+        </div>
+
       </div>
     </section>
 

@@ -6,6 +6,7 @@ A web-based prototype for managing and registering for college and university ca
 
 - **Event Discovery & Filtering:** Browse upcoming events by category (Fests, Workshops, Sports Meets, Seminars) with real-time seat availability tracking.
 - **Student Registration & QR Ticketing:** Simple registration flow generating printable event tickets with dynamic QR codes.
+- **Event Feedback & Rating System:** Students can rate events (1–5 stars) and submit suggestions. Real-time average rating badges on event cards and detail pages, plus admin management to review, filter, delete, and export feedback to CSV.
 - **Organizer Portal:** Submit new event proposals for admin review, track submission status, and export event request JSONs.
 - **Admin Dashboard:** PIN-protected administrative panel to approve/reject event requests, verify registrations, mark attendance, and export attendee lists to CSV.
 - **Calendar Integration:** One-click `.ics` calendar event generation to easily add events to Google Calendar, Apple Calendar, or Outlook.

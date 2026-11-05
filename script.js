@@ -236,6 +236,104 @@ function getEventById(eventId) {
 const allEvents = getAllPublishedEvents;
 const getEv = getEventById;
 
+// --- 5.1. Event Feedback Storage & Rating Helpers ---
+const SEED_FEEDBACK = [
+  {
+    id: 'FB-SEED-1',
+    eid: 'e1',
+    ename: 'TechFest 2026',
+    name: 'Aarav Sharma',
+    rating: 5,
+    suggestion: 'Incredible hackathon arrangements! Would love even more industry mentoring sessions next year.',
+    at: '2026-10-25T14:30:00.000Z'
+  },
+  {
+    id: 'FB-SEED-2',
+    eid: 'e1',
+    ename: 'TechFest 2026',
+    name: 'Sneha Patel',
+    rating: 4,
+    suggestion: 'Great projects on display. The robotics track was especially impressive.',
+    at: '2026-10-25T17:15:00.000Z'
+  },
+  {
+    id: 'FB-SEED-3',
+    eid: 'e2',
+    ename: 'Web Dev Workshop',
+    name: 'Rohan Verma',
+    rating: 5,
+    suggestion: 'Hands-on coding was super helpful! Built my first real website in one afternoon.',
+    at: '2026-10-15T11:20:00.000Z'
+  },
+  {
+    id: 'FB-SEED-4',
+    eid: 'e2',
+    ename: 'Web Dev Workshop',
+    name: 'Priya Nair',
+    rating: 5,
+    suggestion: 'Clear explanations and friendly mentors. Please conduct an advanced workshop next semester!',
+    at: '2026-10-15T12:00:00.000Z'
+  },
+  {
+    id: 'FB-SEED-5',
+    eid: 'e3',
+    ename: 'Inter-Branch Cricket',
+    name: 'Karan Singh',
+    rating: 4,
+    suggestion: 'High-energy tournament and well-refereed matches.',
+    at: '2026-11-03T18:00:00.000Z'
+  },
+  {
+    id: 'FB-SEED-6',
+    eid: 'e4',
+    ename: 'Cyber Safety Seminar',
+    name: 'Ananya Gupta',
+    rating: 5,
+    suggestion: 'Eye-opening case studies on cybersecurity, phishing prevention and personal data privacy.',
+    at: '2026-10-17T09:45:00.000Z'
+  }
+];
+
+function getAllFeedback() {
+  const stored = getStorage('event_feedback', null);
+  if (stored === null) {
+    setStorage('event_feedback', SEED_FEEDBACK);
+    return SEED_FEEDBACK;
+  }
+  return stored;
+}
+
+function saveFeedback(feedbackList) {
+  setStorage('event_feedback', feedbackList);
+}
+
+function getEventFeedback(eventId) {
+  return getAllFeedback().filter((item) => item.eid === eventId);
+}
+
+function getEventAverageRating(eventId) {
+  const list = getEventFeedback(eventId);
+  if (!list.length) {
+    return { score: 0, count: 0, display: 'New' };
+  }
+  const sum = list.reduce((acc, curr) => acc + (Number(curr.rating) || 0), 0);
+  const avg = sum / list.length;
+  return {
+    score: avg,
+    count: list.length,
+    display: `${avg.toFixed(1)} (${list.length})`
+  };
+}
+
+function renderStars(rating) {
+  const rounded = Math.round(Number(rating) || 0);
+  let str = '';
+  for (let i = 1; i <= 5; i++) {
+    str += i <= rounded ? '★' : '☆';
+  }
+  return str;
+}
+
 // --- 6. Application State ---
 let currentSession = getStorage('session', null);
 let activeLoginRole = 'student';
@@ -548,6 +646,11 @@ function createEventCardHtml(eventItem, registrations, categoryColor) {
     ? 'Event full'
     : 'Register';
 
+  const avgRating = getEventAverageRating(eventItem.id);
+  const ratingBadgeHtml = avgRating.count
+    ? `<span class="tag rating-tag" title="Average Rating: ${avgRating.score.toFixed(1)} out of 5 (${avgRating.count} review${avgRating.count > 1 ? 's' : ''})"><span style="color:var(--gold);">★</span> ${avgRating.score.toFixed(1)} <small style="font-size:0.75rem; opacity:0.8;">(${avgRating.count})</small></span>`
+    : `<span class="tag rating-tag" title="No reviews yet"><span style="color:var(--gold);">★</span> New</span>`;
+
   return `
     <article class="ev" style="--tc: ${categoryColor};" onclick="showEvent('${eventItem.id}')">
       <div class="date">
@@ -555,11 +658,12 @@ function createEventCardHtml(eventItem, registrations, categoryColor) {
         <span>${monthAbbr}</span>
       </div>
       <div class="in">
-        <div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
           <span class="tag ${eventItem.fee ? 'paid' : 'free'}">
             ${eventItem.fee ? '₹' + eventItem.fee : 'Free'}
           </span>
           ${eventItem.team ? '<span class="tag">Team</span>' : ''}
+          ${ratingBadgeHtml}
         </div>
         <h3>
           <button type="button" class="lnk">${escapeHtml(eventItem.name)}</button>
@@ -569,14 +673,24 @@ function createEventCardHtml(eventItem, registrations, categoryColor) {
           ${Math.max(seatsRemaining, 0)} of ${eventItem.seats} seats left · register by ${escapeHtml(eventItem.deadline)}
         </p>
         <p class="mut">${escapeHtml(eventItem.desc)}</p>
-        <button
-          type="button"
-          class="btn sm"
-          ${isRegistrationClosed || isEventFull ? 'disabled' : ''}
-          onclick="event.stopPropagation(); openReg('${eventItem.id}')"
-        >
-          ${registerBtnLabel}
-        </button>
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: auto; padding-top: 6px;">
+          <button
+            type="button"
+            class="btn sm"
+            ${isRegistrationClosed || isEventFull ? 'disabled' : ''}
+            onclick="event.stopPropagation(); openReg('${eventItem.id}')"
+          >
+            ${registerBtnLabel}
+          </button>
+          <button
+            type="button"
+            class="btn sm btn--outline"
+            onclick="event.stopPropagation(); openFeedbackModal('${eventItem.id}')"
+            title="Give feedback for this event"
+          >
+            ★ Feedback
+          </button>
+        </div>
       </div>
     </article>
   `;
@@ -812,6 +926,9 @@ function renderDetail(eventId) {
     deadlineStatusMessage = 'Registration closes today';
   }
 
+  const avgRating = getEventAverageRating(eventId);
+  const eventFeedbackList = getEventFeedback(eventId).sort((a, b) => b.at.localeCompare(a.at));
+
   const relatedEvents = getAllPublishedEvents()
     .filter((item) => item.type === eventItem.type && item.id !== eventId)
     .slice(0, 3);
@@ -822,9 +939,14 @@ function renderDetail(eventId) {
     </p>
 
     <div class="dhero" style="--tc: ${categoryMeta.c};">
-      <span class="tag">${escapeHtml(eventItem.type)}</span>
-      <span class="tag ${eventItem.fee ? 'paid' : 'free'}">${eventItem.fee ? '₹' + eventItem.fee : 'Free'}</span>
-      ${eventItem.team ? '<span class="tag">Team event</span>' : ''}
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: var(--s2);">
+        <span class="tag">${escapeHtml(eventItem.type)}</span>
+        <span class="tag ${eventItem.fee ? 'paid' : 'free'}">${eventItem.fee ? '₹' + eventItem.fee : 'Free'}</span>
+        ${eventItem.team ? '<span class="tag">Team event</span>' : ''}
+        <span class="tag rating-tag">
+          ★ ${avgRating.count ? avgRating.score.toFixed(1) + ' / 5 (' + avgRating.count + ' review' + (avgRating.count > 1 ? 's' : '') + ')' : 'No ratings yet'}
+        </span>
+      </div>
       <h2>${escapeHtml(eventItem.name)}</h2>
       <p>Hosted by ${escapeHtml(eventItem.club)}</p>
     </div>
@@ -868,6 +990,45 @@ function renderDetail(eventId) {
             <li>Generate your printable event ticket with dynamic QR code authentication.</li>
             <li>Present the ticket on your phone or in print at the entrance gate.</li>
           </ol>
+        </div>
+
+        <div class="panel">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <h2 style="margin: 0; padding-bottom: 0; border-bottom: none;">Student Reviews & Suggestions</h2>
+              <p class="mut" style="margin: 4px 0 0;">
+                ${
+                  avgRating.count
+                    ? `Average Rating: <strong style="color:var(--gold); font-size:1.05rem;">★ ${avgRating.score.toFixed(1)}</strong> out of 5 · ${avgRating.count} student review${avgRating.count > 1 ? 's' : ''}`
+                    : 'No student reviews yet. Be the first to share your thoughts!'
+                }
+              </p>
+            </div>
+            <button type="button" class="btn sm" onclick="openFeedbackModal('${eventItem.id}')">★ Give Feedback</button>
+          </div>
+
+          ${
+            eventFeedbackList.length
+              ? `
+            <div class="feedback-grid">
+              ${eventFeedbackList
+                .map(
+                  (fb) => `
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <span class="feedback-author">${escapeHtml(fb.name)}</span>
+                    <span class="feedback-stars" title="${fb.rating} of 5 stars">${renderStars(fb.rating)}</span>
+                  </div>
+                  ${fb.suggestion ? `<p class="feedback-body">${escapeHtml(fb.suggestion)}</p>` : ''}
+                  <span class="feedback-time">${formatDisplayDate(fb.at.slice(0, 10))}</span>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          `
+              : '<p class="empty" style="padding: 24px;">No feedback submitted for this event yet.</p>'
+          }
         </div>
 
         ${
@@ -919,7 +1080,17 @@ function renderDetail(eventId) {
             }
           </button>
         </p>
-        <p style="display: flex; gap: 8px;">
+        <p style="margin: 10px 0 0;">
+          <button
+            type="button"
+            class="btn btn--outline sm"
+            style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
+            onclick="openFeedbackModal('${eventItem.id}')"
+          >
+            <span style="color:var(--gold);">★</span> Give Feedback
+          </button>
+        </p>
+        <p style="display: flex; gap: 8px; margin-top: 10px;">
           <button type="button" class="btn sec sm" style="flex: 1;" onclick="addCal('${eventItem.id}')">Add to calendar</button>
           <button type="button" class="btn sec sm" style="flex: 1;" onclick="copyLink(this)">Copy link</button>
         </p>
@@ -1305,6 +1476,154 @@ function renderMine() {
   }
 }
 
+// --- 13.1. Event Feedback Modal & Submission Logic ---
+let currentFeedbackRating = 5;
+
+const RATING_DESCRIPTIONS = {
+  1: '1 · Poor',
+  2: '2 · Fair',
+  3: '3 · Good',
+  4: '4 · Very Good',
+  5: '5 · Excellent'
+};
+
+function setModalRating(val) {
+  currentFeedbackRating = Math.max(1, Math.min(5, Number(val) || 5));
+  const hiddenInput = qs('#fb_rating');
+  if (hiddenInput) hiddenInput.value = currentFeedbackRating;
+
+  qsa('.star-btn').forEach((btn) => {
+    const starNum = Number(btn.dataset.star);
+    btn.classList.toggle('active', starNum <= currentFeedbackRating);
+  });
+
+  const labelEl = qs('#fb_rating_label');
+  if (labelEl) {
+    labelEl.textContent = RATING_DESCRIPTIONS[currentFeedbackRating] || `${currentFeedbackRating} Stars`;
+  }
+}
+
+function openFeedbackModal(eventId) {
+  const eventItem = getEventById(eventId);
+  if (!eventItem) return;
+
+  const defaultName = currentSession && currentSession.role === 'student' ? currentSession.name : '';
+  currentFeedbackRating = 5;
+
+  const modalHtml = `
+    <h2 style="margin-top: 0;">Give Event Feedback</h2>
+    <p class="mut" style="margin-top: -8px; margin-bottom: 18px;">
+      Share your experience and review for <strong>${escapeHtml(eventItem.name)}</strong>
+    </p>
+
+    <form class="f" id="fbForm" novalidate>
+      <label for="fb_name">Student Name</label>
+      <input id="fb_name" type="text" placeholder="Enter your full name" value="${escapeHtml(defaultName)}">
+
+      <label>Rating (1 to 5 Stars)</label>
+      <input type="hidden" id="fb_rating" value="5">
+      <div class="star-rating-select" role="radiogroup" aria-label="Rate from 1 to 5 stars">
+        ${[1, 2, 3, 4, 5]
+          .map(
+            (num) => `
+          <button
+            type="button"
+            class="star-btn ${num <= 5 ? 'active' : ''}"
+            data-star="${num}"
+            onclick="setModalRating(${num})"
+            aria-label="${num} star${num > 1 ? 's' : ''}"
+          >★</button>
+        `
+          )
+          .join('')}
+        <span class="star-label" id="fb_rating_label">5 · Excellent</span>
+      </div>
+
+      <label for="fb_sugg">Suggestions & Comments</label>
+      <textarea id="fb_sugg" rows="4" placeholder="What did you enjoy most? What could the organizing team improve?"></textarea>
+
+      <div id="fb_err"></div>
+
+      <p style="margin-top: 20px;">
+        <button class="btn" style="width: 100%;" type="submit">Submit Feedback</button>
+      </p>
+    </form>
+  `;
+
+  openModal(modalHtml);
+
+  const form = qs('#fbForm');
+  if (form) {
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      submitFeedback(eventItem);
+    };
+  }
+}
+
+function submitFeedback(eventItem) {
+  const nameInput = qs('#fb_name');
+  const suggInput = qs('#fb_sugg');
+  const ratingInput = qs('#fb_rating');
+  const errContainer = qs('#fb_err');
+
+  const studentName = nameInput ? nameInput.value.trim() : '';
+  const suggestions = suggInput ? suggInput.value.trim() : '';
+  const rating = ratingInput ? Number(ratingInput.value) : 5;
+
+  const errors = [];
+  if (!studentName || studentName.length < 2) {
+    errors.push('Please enter your name (at least 2 characters).');
+  }
+  if (!rating || rating < 1 || rating > 5) {
+    errors.push('Please choose a star rating from 1 to 5.');
+  }
+
+  if (errors.length) {
+    if (errContainer) {
+      errContainer.innerHTML = `<div class="err">${errors.map(escapeHtml).join('<br>')}</div>`;
+    }
+    return;
+  }
+
+  const newFeedback = {
+    id: 'FB-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
+    eid: eventItem.id,
+    ename: eventItem.name,
+    name: studentName,
+    rating: rating,
+    suggestion: suggestions,
+    at: new Date().toISOString()
+  };
+
+  const list = getAllFeedback();
+  list.unshift(newFeedback);
+  saveFeedback(list);
+
+  openModal(`
+    <div style="text-align: center; padding: 14px 8px;">
+      <div style="font-size: 2.8rem; color: var(--gold); line-height: 1; margin-bottom: 12px;">★</div>
+      <h2 style="margin: 0 0 8px;">Thank You for Your Feedback!</h2>
+      <p class="mut" style="margin-bottom: 22px;">
+        Your review and rating for <strong>${escapeHtml(eventItem.name)}</strong> have been submitted successfully.
+      </p>
+      <button type="button" class="btn" onclick="closeModal()">Close</button>
+    </div>
+  `);
+
+  renderEvents();
+
+  const detailEl = qs('#v-detail');
+  if (detailEl && !detailEl.classList.contains('hide')) {
+    renderDetail(eventItem.id);
+  }
+
+  const adminEl = qs('#v-admin');
+  if (adminEl && !adminEl.classList.contains('hide')) {
+    renderAdmin();
+  }
+}
+
 // --- 14. Organizer Dashboard ---
 const organizerForm = qs('#orgForm');
 if (organizerForm) {
@@ -1536,6 +1855,128 @@ function renderAdmin() {
       regTableContainer.innerHTML = '<p class="mut">No attendee registrations recorded yet.</p>';
     }
   }
+
+  // Render Event Feedback Management
+  renderAdminFeedback();
+}
+
+function renderAdminFeedback() {
+  const allFeedback = getAllFeedback();
+  const filterSelect = qs('#fbEventFilter');
+  const selectedEventId = filterSelect ? filterSelect.value : '';
+
+  // Populate event dropdown with all events
+  if (filterSelect) {
+    const currentVal = filterSelect.value;
+    const events = getAllPublishedEvents();
+    filterSelect.innerHTML =
+      `<option value="">All Events (${allFeedback.length})</option>` +
+      events
+        .map((e) => {
+          const count = allFeedback.filter((fb) => fb.eid === e.id).length;
+          return `<option value="${e.id}" ${currentVal === e.id ? 'selected' : ''}>${escapeHtml(e.name)} (${count})</option>`;
+        })
+        .join('');
+  }
+
+  const filteredList = selectedEventId
+    ? allFeedback.filter((fb) => fb.eid === selectedEventId)
+    : allFeedback;
+
+  // Render stats
+  const statsContainer = qs('#fbAdminStats');
+  if (statsContainer) {
+    const totalCount = allFeedback.length;
+    const avgScore = totalCount
+      ? (allFeedback.reduce((sum, item) => sum + (Number(item.rating) || 0), 0) / totalCount).toFixed(1)
+      : '0.0';
+
+    // Calculate top rated event
+    const eventAverages = getAllPublishedEvents()
+      .map((e) => {
+        const stats = getEventAverageRating(e.id);
+        return { event: e, ...stats };
+      })
+      .filter((item) => item.count > 0)
+      .sort((a, b) => b.score - a.score);
+
+    const topEventText = eventAverages.length
+      ? `${escapeHtml(eventAverages[0].event.name)} (★ ${eventAverages[0].score.toFixed(1)})`
+      : 'None yet';
+
+    statsContainer.innerHTML = `
+      <div class="fb-stat-grid">
+        <div class="fb-stat-pill">
+          <span class="fb-stat-num">${totalCount}</span>
+          <span class="fb-stat-title">Total Feedback Submissions</span>
+        </div>
+        <div class="fb-stat-pill">
+          <span class="fb-stat-num">★ ${avgScore} <small style="font-size:0.9rem; color:var(--text-3);">/ 5</small></span>
+          <span class="fb-stat-title">Campus Average Rating</span>
+        </div>
+        <div class="fb-stat-pill">
+          <span class="fb-stat-num" style="font-size: 1.15rem; word-break: break-word;">${topEventText}</span>
+          <span class="fb-stat-title">Top Rated Event</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Render table
+  const tableContainer = qs('#fbTable');
+  if (tableContainer) {
+    if (filteredList.length) {
+      tableContainer.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Student Name</th>
+              <th>Rating</th>
+              <th>Suggestions / Comments</th>
+              <th>Submitted Date</th>
+              <th>Manage</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredList
+              .map(
+                (fb) => `
+              <tr>
+                <td><strong>${escapeHtml(fb.ename)}</strong></td>
+                <td>${escapeHtml(fb.name)}</td>
+                <td>
+                  <span style="color:var(--gold); letter-spacing:1px; white-space:nowrap;">${renderStars(fb.rating)}</span>
+                  <span class="muted-text" style="font-size:0.8rem; margin-left:4px;">(${fb.rating}/5)</span>
+                </td>
+                <td style="max-width:320px; line-height:1.4;">${escapeHtml(fb.suggestion || '—')}</td>
+                <td style="white-space:nowrap;">${formatDisplayDate(fb.at.slice(0, 10))}</td>
+                <td>
+                  <button type="button" class="btn sm bad" onclick="deleteFeedback('${fb.id}')">Delete</button>
+                </td>
+              </tr>
+            `
+              )
+              .join('')}
+          </tbody>
+        </table>
+      `;
+    } else {
+      tableContainer.innerHTML = '<p class="mut" style="padding:16px 0;">No feedback entries found for this selection.</p>';
+    }
+  }
+}
+
+function deleteFeedback(feedbackId) {
+  if (!confirm('Are you sure you want to delete this student feedback?')) return;
+  const list = getAllFeedback().filter((item) => item.id !== feedbackId);
+  saveFeedback(list);
+  renderAdmin();
+  renderEvents();
+  const detailEl = qs('#v-detail');
+  if (detailEl && !detailEl.classList.contains('hide') && history.state && history.state.e) {
+    renderDetail(history.state.e);
+  }
 }
 
 function decide(index, isApproved) {
@@ -1640,6 +2081,21 @@ if (exportCsvBtn) {
   };
 }
 
+// Admin: Export Feedback CSV
+const exportFbCsvBtn = qs('#exportFbCsv');
+if (exportFbCsvBtn) {
+  exportFbCsvBtn.onclick = () => {
+    const feedbackList = getAllFeedback();
+    const csvHeaders = ['id', 'eid', 'ename', 'name', 'rating', 'suggestion', 'at'];
+    const escapeCsv = (val) => `"${String(val == null ? '' : val).replace(/"/g, '""')}"`;
+    const csvContent = [
+      csvHeaders.join(','),
+      ...feedbackList.map((row) => csvHeaders.map((k) => escapeCsv(row[k])).join(','))
+    ].join('\r\n');
+    downloadFile('campus-event-feedback.csv', csvContent, 'text/csv');
+  };
+}
+
 // --- 16. Window Global Exports (ensures inline event handlers work seamlessly) ---
 window.doLogout = doLogout;
 window.loginFromHeader = loginFromHeader;
@@ -1659,6 +2115,11 @@ window.decide = decide;
 window.verify = verify;
 window.attend = attend;
 window.toggleTheme = toggleTheme;
+window.openFeedbackModal = openFeedbackModal;
+window.setModalRating = setModalRating;
+window.submitFeedback = submitFeedback;
+window.deleteFeedback = deleteFeedback;
+window.renderAdminFeedback = renderAdminFeedback;
 
 // --- 17. Application Initialization ---
 let appInitialized = false;

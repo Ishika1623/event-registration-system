@@ -2067,3 +2067,191 @@ body.light-mode #site-footer {
 }
 body.light-mode .footer-note { color: rgba(0,0,0,0.40); }
 body.light-mode .footer-logo span { color: rgba(0,0,0,0.70); }
+
+/* ── 20. EVENT FEEDBACK & REVIEWS ────────────────────── */
+.tag.rating-tag {
+  background: var(--gold-faint);
+  color: var(--gold);
+  border-color: rgba(200, 169, 110, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.star-rating-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0 6px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 1.85rem;
+  line-height: 1;
+  color: var(--text-4);
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: color var(--fast), transform var(--fast);
+}
+
+.star-btn:hover,
+.star-btn.active {
+  color: var(--gold);
+  transform: scale(1.15);
+}
+
+.star-label {
+  font-size: var(--size-xs);
+  font-weight: 600;
+  color: var(--text-2);
+  margin-left: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.feedback-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.feedback-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--bd-1);
+  border-radius: var(--r3);
+  padding: 14px 18px;
+  transition: background var(--fast), border-color var(--fast);
+}
+
+.feedback-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--bd-2);
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.feedback-author {
+  font-weight: 600;
+  color: var(--text-1);
+  font-size: var(--size-sm);
+}
+
+.feedback-stars {
+  color: var(--gold);
+  font-size: 1rem;
+  letter-spacing: 2px;
+}
+
+.feedback-body {
+  font-size: var(--size-sm);
+  color: var(--text-2);
+  line-height: 1.55;
+  margin: 4px 0 8px;
+}
+
+.feedback-time {
+  font-size: var(--size-xs);
+  color: var(--text-3);
+  display: block;
+}
+
+/* Admin feedback stats */
+.fb-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.fb-stat-pill {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--bd-1);
+  border-radius: var(--r3);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fb-stat-num {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  line-height: 1.1;
+}
+
+.fb-stat-title {
+  font-size: var(--size-xs);
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Light mode overrides */
+body.light-mode .tag.rating-tag {
+  background: var(--gold-faint);
+  color: var(--gold-dark);
+  border-color: rgba(160, 120, 64, 0.25);
+}
+
+body.light-mode .star-btn {
+  color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .star-btn:hover,
+body.light-mode .star-btn.active {
+  color: var(--gold-dark);
+}
+
+body.light-mode .star-label {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+body.light-mode .feedback-card {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: var(--bd-1);
+}
+
+body.light-mode .feedback-card:hover {
+  background: rgba(0, 0, 0, 0.035);
+  border-color: var(--bd-2);
+}
+
+body.light-mode .feedback-author {
+  color: #1a1a1a;
+}
+
+body.light-mode .feedback-stars {
+  color: var(--gold-dark);
+}
+
+body.light-mode .feedback-body {
+  color: rgba(0, 0, 0, 0.75);
+}
+
+body.light-mode .feedback-time {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+body.light-mode .fb-stat-pill {
+  background: #ffffff;
+  border-color: var(--bd-1);
+}
+
+body.light-mode .fb-stat-num {
+  color: var(--gold-dark);
+}
+
+body.light-mode .fb-stat-title {
+  color: rgba(0, 0, 0, 0.5);
+}
