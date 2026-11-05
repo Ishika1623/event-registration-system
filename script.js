@@ -484,6 +484,9 @@ if (navContainer) {
     const targetView = event.target.dataset.v;
     if (targetView) {
       show(targetView);
+      navContainer.classList.remove('mobile-open');
+      const mb = document.getElementById('menuBtn');
+      if (mb) mb.setAttribute('aria-expanded', 'false');
     }
   };
 }
@@ -680,6 +683,10 @@ function updateArrows(rowx) {
   if (rightBtn) rightBtn.style.display = (canScroll && !atEnd)   ? '' : 'none';
 }
 
+function syncArrows() {
+  document.querySelectorAll('.rowx').forEach(updateArrows);
+}
+
 /**
  * Attach scroll listeners and a ResizeObserver to every .rowx in the page.
  * Cleanup callbacks are stored so they can be torn down before the next render.
@@ -718,9 +725,7 @@ function initCarousels() {
 
 // Stable window-resize handler for when the events view is already visible
 // (e.g. user resizes without triggering a re-render).
-window.addEventListener('resize', () => {
-  document.querySelectorAll('.rowx').forEach(updateArrows);
-});
+window.addEventListener('resize', syncArrows);
 
 function setType(categoryType) {
   currentCategoryFilter = categoryType;
@@ -1653,18 +1658,25 @@ window.showTicket = showTicket;
 window.decide = decide;
 window.verify = verify;
 window.attend = attend;
+window.toggleTheme = toggleTheme;
 
 // --- 17. Application Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
+let appInitialized = false;
+function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
   applyAuth();
   show('events');
-  const evListEl = document.getElementById('evList'); if (evListEl && window.ResizeObserver) { new ResizeObserver(syncArrows).observe(evListEl); }
-});
+  const evListEl = document.getElementById('evList');
+  if (evListEl && window.ResizeObserver) {
+    new ResizeObserver(syncArrows).observe(evListEl);
+  }
+}
 
-// Run immediate fallback initialization in case DOMContentLoaded has already fired
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  applyAuth();
-  show('events');
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
 }
 
 
@@ -1675,4 +1687,88 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   const toggle = () => hdr.classList.toggle('scrolled', window.scrollY > 10);
   toggle();
   window.addEventListener('scroll', toggle, { passive: true });
+})();
+
+
+// --- 19. Theme Toggle (Dark / Light mode) ---
+let _themeToggling = false;
+function toggleTheme() {
+  if (_themeToggling) return;
+  _themeToggling = true;
+  setTimeout(() => { _themeToggling = false; }, 200);
+
+  const shouldBeLight = !document.body.classList.contains('light-mode');
+  if (shouldBeLight) {
+    document.body.classList.add('light-mode');
+    document.documentElement.classList.add('light-mode');
+  } else {
+    document.body.classList.remove('light-mode');
+    document.documentElement.classList.remove('light-mode');
+  }
+
+  try {
+    localStorage.setItem('lpu-theme', shouldBeLight ? 'light' : 'dark');
+  } catch (e) {
+    // Storage access might be restricted
+  }
+
+  const btn = document.getElementById('themeToggle');
+  if (btn) {
+    const label = shouldBeLight ? 'Switch to dark mode' : 'Switch to light mode';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+  }
+}
+window.toggleTheme = toggleTheme;
+
+(function initThemeToggle() {
+  // Restore saved preference immediately
+  try {
+    const saved = localStorage.getItem('lpu-theme');
+    if (saved === 'light') {
+      document.body.classList.add('light-mode');
+      document.documentElement.classList.add('light-mode');
+    }
+  } catch (e) {
+    // Storage access might be restricted
+  }
+
+  function attachToggle() {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+
+    const isLight = document.body.classList.contains('light-mode');
+    const label = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+
+    // Use idempotent property assignment so handler cannot be attached twice
+    btn.onclick = toggleTheme;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachToggle);
+  } else {
+    attachToggle();
+  }
+})();
+
+// Mobile Hamburger Menu Toggle
+(function initMobileMenu() {
+  const menuBtn = document.getElementById('menuBtn');
+  const nav = document.getElementById('nav');
+  if (!menuBtn || !nav) return;
+
+  menuBtn.onclick = function (e) {
+    e.stopPropagation();
+    const isOpen = nav.classList.toggle('mobile-open');
+    menuBtn.setAttribute('aria-expanded', String(isOpen));
+  };
+
+  document.addEventListener('click', function (e) {
+    if (!nav.contains(e.target) && !menuBtn.contains(e.target)) {
+      nav.classList.remove('mobile-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
 })();

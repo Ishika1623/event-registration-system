@@ -16,6 +16,15 @@
     rel="stylesheet">
 
   <link rel="stylesheet" href="style.css">
+  <script>
+    (function(){
+      try{
+        if(localStorage.getItem('lpu-theme')==='light'){
+          document.documentElement.classList.add('light-mode');
+        }
+      }catch(e){}
+    })();
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="script.js" defer></script>
 </head>
@@ -47,9 +56,32 @@
       <!-- Main nav (JS populates buttons) -->
       <nav id="nav" aria-label="Main Navigation"></nav>
 
-      <!-- Auth + hamburger -->
+      <!-- Auth + Theme Toggle + hamburger -->
       <div class="header-right">
         <div id="auth" class="auth"></div>
+
+        <!-- Theme toggle button -->
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark mode" title="Toggle theme">
+          <!-- Moon icon (shown in dark mode) -->
+          <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
+          </svg>
+          <!-- Sun icon (shown in light mode) -->
+          <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1"  x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22"  x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1"  y1="12" x2="3"  y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+
         <button class="hamburger" id="menuBtn" aria-label="Toggle menu" aria-expanded="false">
           <span></span><span></span>
         </button>
@@ -349,6 +381,7 @@
       <div id="mbody"></div>
     </div>
   </div>
+
 
 </body>
 
