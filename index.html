@@ -19,6 +19,7 @@
   <script>
     (function () {
       try {
+        3
         if (localStorage.getItem('lpu-theme') === 'light') {
           document.documentElement.classList.add('light-mode');
         }
@@ -28,6 +29,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="script.js" defer></script>
 </head>
+33
 
 <body>
 
@@ -82,7 +84,8 @@
           </svg>
         </button>
 
-        <button class="hamburger sidebar-toggle-btn" id="menuBtn" aria-label="Toggle navigation sidebar" aria-expanded="false" title="Toggle Sidebar">
+        <button class="hamburger sidebar-toggle-btn" id="menuBtn" aria-label="Toggle navigation sidebar"
+          aria-expanded="false" title="Toggle Sidebar">
           <span></span><span></span><span></span>
         </button>
       </div>
@@ -103,9 +106,10 @@
         <div class="sidebar-brand">
           <div class="logo-icon small">
             <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <polygon points="18,2 34,10 34,26 18,34 2,26 2,10" stroke="currentColor" stroke-width="2" fill="none"/>
-              <polygon points="18,7 29,13 29,23 18,29 7,23 7,13" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.5"/>
-              <circle cx="18" cy="18" r="4" fill="currentColor"/>
+              <polygon points="18,2 34,10 34,26 18,34 2,26 2,10" stroke="currentColor" stroke-width="2" fill="none" />
+              <polygon points="18,7 29,13 29,23 18,29 7,23 7,13" fill="currentColor" fill-opacity="0.15"
+                stroke="currentColor" stroke-width="1.5" />
+              <circle cx="18" cy="18" r="4" fill="currentColor" />
             </svg>
           </div>
           <div class="sidebar-brand-text">
@@ -116,8 +120,8 @@
 
         <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar" title="Close sidebar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
@@ -168,7 +172,8 @@
 
       <!-- Footer & Theme Toggle -->
       <div class="sidebar-footer">
-        <button type="button" class="sidebar-theme-toggle" id="sidebarThemeBtn" onclick="toggleTheme()" aria-label="Toggle theme mode">
+        <button type="button" class="sidebar-theme-toggle" id="sidebarThemeBtn" onclick="toggleTheme()"
+          aria-label="Toggle theme mode">
           <span class="sidebar-theme-icon" id="sidebarThemeIcon">🌙</span>
           <span class="sidebar-theme-label" id="sidebarThemeLabel">Dark Mode</span>
           <span class="sidebar-theme-pill">Switch</span>
@@ -264,7 +269,9 @@
           into one extraordinary platform.
         </p>
 
-        <div class="hero-cta" onclick="navigateToEvents()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();navigateToEvents();}" role="button" tabindex="0" aria-label="Explore events">
+        <div class="hero-cta" onclick="navigateToEvents()"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();navigateToEvents();}" role="button"
+          tabindex="0" aria-label="Explore events">
           <button class="cta-circle" aria-label="Explore events" tabindex="-1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
               <path d="M5 12h14M13 6l6 6-6 6" />
@@ -294,11 +301,45 @@
   <main id="app-main">
 
     <!-- ── VIEW 1: Events Catalog ── -->
-    <section id="v-events" aria-label="Events Catalog">
+    <section id="v-events" class="events-section" aria-label="Events Catalog">
+
+      <!-- Ambient Graphics & Atmospheric Background -->
+      <div class="events-bg-backdrop" aria-hidden="true">
+        <div class="events-glow-orb events-glow-orb--1"></div>
+        <div class="events-glow-orb events-glow-orb--2"></div>
+        <div class="events-glow-orb events-glow-orb--3"></div>
+        <div class="events-grid-pattern"></div>
+
+        <!-- Architectural & Celestial Constellation Watermark -->
+        <div class="events-graphic-watermark">
+          <svg viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="300" cy="300" r="260" stroke="currentColor" stroke-width="1" stroke-dasharray="6 6"
+              opacity="0.3" />
+            <circle cx="300" cy="300" r="190" stroke="currentColor" stroke-width="1.2" opacity="0.45" />
+            <circle cx="300" cy="300" r="120" stroke="currentColor" stroke-width="1" stroke-dasharray="3 4"
+              opacity="0.35" />
+            <ellipse cx="300" cy="300" rx="280" ry="90" stroke="currentColor" stroke-width="1.2"
+              transform="rotate(-25 300 300)" opacity="0.4" />
+            <ellipse cx="300" cy="300" rx="240" ry="70" stroke="currentColor" stroke-width="1"
+              transform="rotate(35 300 300)" opacity="0.25" />
+            <polygon points="300,70 500,420 100,420" stroke="currentColor" stroke-width="0.8" opacity="0.2" />
+            <polygon points="300,530 500,180 100,180" stroke="currentColor" stroke-width="0.8" opacity="0.2" />
+          </svg>
+        </div>
+      </div>
 
       <div class="section-header">
-        <p class="section-label">All Events</p>
-        <h2 class="section-title">What's Happening</h2>
+        <div class="section-header-top">
+          <div class="live-pulse-badge">
+            <span class="pulse-beacon"><span class="beacon-core"></span></span>
+            <span>LIVE CAMPUS FEED · 2026</span>
+          </div>
+          <div class="events-count-pill" id="eventsCountPill">Events Catalog</div>
+        </div>
+        <h2 class="section-title">What's Happening <span class="title-accent">at LPU</span></h2>
+        <p class="section-subtitle">Discover university-wide fests, technical hackathons, guest seminars, and club
+          activities happening across campus.</p>
+        <div class="section-divider-glow"></div>
       </div>
 
       <!-- Search -->
@@ -430,11 +471,15 @@
         <div id="o_list"></div>
 
         <!-- Section: Customize Event Backgrounds (Creator/Organizer Only) -->
-        <div id="o_bg_section" class="panel" style="margin-top: 32px; padding: 20px; border: 1px solid var(--bd-1); border-radius: var(--r4); background: rgba(255,255,255,.02);">
-          <div class="panel-head" style="margin-bottom: 12px; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div id="o_bg_section" class="panel"
+          style="margin-top: 32px; padding: 20px; border: 1px solid var(--bd-1); border-radius: var(--r4); background: rgba(255,255,255,.02);">
+          <div class="panel-head"
+            style="margin-bottom: 12px; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div>
-              <p class="section-label" style="margin: 0; font-size: var(--size-xs); color: var(--gold);">Card Appearance</p>
-              <h2 class="panel-title" style="margin: 4px 0 0; font-size: var(--size-lg);">Customize Event Background</h2>
+              <p class="section-label" style="margin: 0; font-size: var(--size-xs); color: var(--gold);">Card Appearance
+              </p>
+              <h2 class="panel-title" style="margin: 4px 0 0; font-size: var(--size-lg);">Customize Event Background
+              </h2>
             </div>
             <span class="tag pri">Creator Tool</span>
           </div>
@@ -455,7 +500,8 @@
             <button type="button" class="btn" id="btnOpenBgModal" onclick="openBgCustomizerForSelected()" disabled>
               🎨 Customize Background
             </button>
-            <span id="bg_selected_hint" class="muted-text" style="font-size: var(--size-xs);">Choose an event you organize to customize its card appearance.</span>
+            <span id="bg_selected_hint" class="muted-text" style="font-size: var(--size-xs);">Choose an event you
+              organize to customize its card appearance.</span>
           </div>
         </div>
       </div>
