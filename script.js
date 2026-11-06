@@ -20,7 +20,7 @@ function getStorage(key, defaultValue) {
         return storedValue;
       }
     }
-  } catch (error) { }
+  } catch (error) {}
   if (window.__memoryStorage && window.__memoryStorage[key] !== undefined) {
     return window.__memoryStorage[key];
   }
@@ -73,11 +73,11 @@ function formatDisplayDate(dateString) {
   return isNaN(parsedDate.getTime())
     ? dateString
     : parsedDate.toLocaleDateString('en-IN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
 }
 
 function formatDisplayTime(timeString) {
@@ -493,14 +493,14 @@ function openLogin(targetRole = 'student') {
     ${loginRedirectNote ? `<p class="mut">${escapeHtml(loginRedirectNote)}</p>` : ''}
     <div class="seg" role="tablist">
       ${roleOptions
-      .map(
-        ([roleKey, roleLabel]) => `
+        .map(
+          ([roleKey, roleLabel]) => `
           <button type="button" class="${roleKey === activeLoginRole ? 'on' : ''}" onclick="openLogin('${roleKey}')">
             ${roleLabel}
           </button>
         `
-      )
-      .join('')}
+        )
+        .join('')}
     </div>
     <form class="f" id="lf" novalidate>
       ${currentRoleForm}
@@ -839,7 +839,7 @@ function removeEventBgConfig(eventId) {
 const getPersonalEventBgConfig = getEventBgConfig;
 const savePersonalEventBgConfig = saveEventBgConfig;
 const removePersonalEventBgConfig = removeEventBgConfig;
-function cleanupPersonalBgIfUnregistered() { }
+function cleanupPersonalBgIfUnregistered() {}
 
 function buildEventBgInlineStyle(config) {
   if (!config) return '';
@@ -891,8 +891,8 @@ function createEventCardHtml(eventItem, registrations, categoryColor, previewBgC
   const registerBtnLabel = isRegistrationClosed
     ? 'Registration closed'
     : isEventFull
-      ? 'Event full'
-      : 'Register';
+    ? 'Event full'
+    : 'Register';
 
   const avgRating = typeof getEventAverageRating === 'function' ? getEventAverageRating(eventItem.id) : { score: 0, count: 0 };
   const ratingBadgeHtml = avgRating.count
@@ -944,8 +944,9 @@ function createEventCardHtml(eventItem, registrations, categoryColor, previewBgC
           >
             ★ Feedback
           </button>
-          ${verifyEventOwnership(eventItem.id)
-      ? `<button
+          ${
+            verifyEventOwnership(eventItem.id)
+              ? `<button
                   type="button"
                   class="btn sm btn--outline"
                   onclick="event.stopPropagation(); openBgCustomizerModal('${eventItem.id}')"
@@ -954,8 +955,8 @@ function createEventCardHtml(eventItem, registrations, categoryColor, previewBgC
                 >
                   🎨 Customize Background
                 </button>`
-      : ''
-    }
+              : ''
+          }
         </div>
       </div>
     </article>
@@ -983,13 +984,13 @@ function renderEvents() {
       .map((chip) => {
         const count = chip.t
           ? allFilteredEvents.filter((item) => {
-            if (!item || !item.type) return false;
-            const it = item.type.trim().toLowerCase();
-            const ct = chip.t.trim().toLowerCase();
-            return it === ct ||
-              (ct === 'club activity' && (it === 'club activity' || it === 'club')) ||
-              (ct === 'sports meet' && (it === 'sports meet' || it === 'sports'));
-          }).length
+              if (!item || !item.type) return false;
+              const it = item.type.trim().toLowerCase();
+              const ct = chip.t.trim().toLowerCase();
+              return it === ct ||
+                     (ct === 'club activity' && (it === 'club activity' || it === 'club')) ||
+                     (ct === 'sports meet' && (it === 'sports meet' || it === 'sports'));
+            }).length
           : allFilteredEvents.length;
         const isActive = currentCategoryFilter === chip.t ? 'on' : '';
         return `
@@ -1023,8 +1024,8 @@ function renderEvents() {
         const it = item.type.trim().toLowerCase();
         const ct = category.t.trim().toLowerCase();
         return it === ct ||
-          (ct === 'club activity' && (it === 'club activity' || it === 'club')) ||
-          (ct === 'sports meet' && (it === 'sports meet' || it === 'sports'));
+               (ct === 'club activity' && (it === 'club activity' || it === 'club')) ||
+               (ct === 'sports meet' && (it === 'sports meet' || it === 'sports'));
       });
       if (!categoryEvents.length) return '';
 
@@ -1036,16 +1037,17 @@ function renderEvents() {
             <h2>${category.t}</h2>
             <p class="mut">${category.d} · ${categoryEvents.length} event${categoryEvents.length > 1 ? 's' : ''}</p>
           </div>
-          ${isSingleCategoryView
-          ? `<div class="grid">${categoryEvents.map((e) => createEventCardHtml(e, registrations, category.c)).join('')}</div>`
-          : `
+          ${
+            isSingleCategoryView
+              ? `<div class="grid">${categoryEvents.map((e) => createEventCardHtml(e, registrations, category.c)).join('')}</div>`
+              : `
                 <div class="rowbox">
                   <button type="button" class="arr l" aria-label="Scroll left" onclick="scrollRow(this, -1)">&lsaquo;</button>
                   <div class="rowx">${categoryEvents.map((e) => createEventCardHtml(e, registrations, category.c)).join('')}</div>
                   <button type="button" class="arr r" aria-label="Scroll right" onclick="scrollRow(this, 1)">&rsaquo;</button>
                 </div>
               `
-        }
+          }
         </section>
       `;
     })
@@ -1068,16 +1070,17 @@ function renderEvents() {
           <h2>Campus Activities</h2>
           <p class="mut">Special and newly added events · ${otherEvents.length} event${otherEvents.length > 1 ? 's' : ''}</p>
         </div>
-        ${isSingleCategoryView
-        ? `<div class="grid">${otherEvents.map((e) => createEventCardHtml(e, registrations, '#c8a96e')).join('')}</div>`
-        : `
+        ${
+          isSingleCategoryView
+            ? `<div class="grid">${otherEvents.map((e) => createEventCardHtml(e, registrations, '#c8a96e')).join('')}</div>`
+            : `
               <div class="rowbox">
                 <button type="button" class="arr l" aria-label="Scroll left" onclick="scrollRow(this, -1)">&lsaquo;</button>
                 <div class="rowx">${otherEvents.map((e) => createEventCardHtml(e, registrations, '#c8a96e')).join('')}</div>
                 <button type="button" class="arr r" aria-label="Scroll right" onclick="scrollRow(this, 1)">&rsaquo;</button>
               </div>
             `
-      }
+        }
       </section>
     `;
   }
@@ -1103,15 +1106,15 @@ function updateArrows(rowx) {
   const box = rowx.closest('.rowbox');
   if (!box) return;
 
-  const atStart = rowx.scrollLeft <= TOLERANCE;
-  const atEnd = rowx.scrollLeft + rowx.clientWidth >= rowx.scrollWidth - TOLERANCE;
+  const atStart  = rowx.scrollLeft <= TOLERANCE;
+  const atEnd    = rowx.scrollLeft + rowx.clientWidth >= rowx.scrollWidth - TOLERANCE;
   const canScroll = rowx.scrollWidth > rowx.clientWidth + TOLERANCE;
 
-  const leftBtn = box.querySelector('.arr.l');
+  const leftBtn  = box.querySelector('.arr.l');
   const rightBtn = box.querySelector('.arr.r');
 
-  if (leftBtn) leftBtn.style.display = (canScroll && !atStart) ? '' : 'none';
-  if (rightBtn) rightBtn.style.display = (canScroll && !atEnd) ? '' : 'none';
+  if (leftBtn)  leftBtn.style.display  = (canScroll && !atStart) ? '' : 'none';
+  if (rightBtn) rightBtn.style.display = (canScroll && !atEnd)   ? '' : 'none';
 }
 
 function syncArrows() {
@@ -1261,12 +1264,13 @@ function renderDetail(eventId) {
   detailContainer.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
       <button type="button" class="btn sec sm" onclick="goBack()">← Back to events</button>
-      ${isOwner
-      ? `<button type="button" class="btn sm" onclick="openBgCustomizerModal('${eventItem.id}')" title="Organizer: Customize background for this event" style="border-color: rgba(200,169,110,0.4); color: var(--gold);">
+      ${
+        isOwner
+          ? `<button type="button" class="btn sm" onclick="openBgCustomizerModal('${eventItem.id}')" title="Organizer: Customize background for this event" style="border-color: rgba(200,169,110,0.4); color: var(--gold);">
               🎨 Customize Background
             </button>`
-      : ''
-    }
+          : ''
+      }
     </div>
 
     <div class="dhero ${hasCustomBg ? 'has-custom-bg' : ''}" style="${dheroStyle}">
@@ -1313,10 +1317,11 @@ function renderDetail(eventId) {
           <h2>How registration works</h2>
           <ol class="steps">
             <li>Fill in your name, registration number, roll number, university email, and mobile number.</li>
-            ${eventItem.fee
-      ? '<li>Scan the UPI QR code to complete payment and enter your transaction ID. The organizing team verifies it.</li>'
-      : ''
-    }
+            ${
+              eventItem.fee
+                ? '<li>Scan the UPI QR code to complete payment and enter your transaction ID. The organizing team verifies it.</li>'
+                : ''
+            }
             <li>Generate your printable event ticket with dynamic QR code authentication.</li>
             <li>Present the ticket on your phone or in print at the entrance gate.</li>
           </ol>
@@ -1327,21 +1332,23 @@ function renderDetail(eventId) {
             <div>
               <h2 style="margin: 0; padding-bottom: 0; border-bottom: none;">Student Reviews & Suggestions</h2>
               <p class="mut" style="margin: 4px 0 0;">
-                ${avgRating.count
-      ? `Average Rating: <strong style="color:var(--gold); font-size:1.05rem;">★ ${avgRating.score.toFixed(1)}</strong> out of 5 · ${avgRating.count} student review${avgRating.count > 1 ? 's' : ''}`
-      : 'No student reviews yet. Be the first to share your thoughts!'
-    }
+                ${
+                  avgRating.count
+                    ? `Average Rating: <strong style="color:var(--gold); font-size:1.05rem;">★ ${avgRating.score.toFixed(1)}</strong> out of 5 · ${avgRating.count} student review${avgRating.count > 1 ? 's' : ''}`
+                    : 'No student reviews yet. Be the first to share your thoughts!'
+                }
               </p>
             </div>
             <button type="button" class="btn sm" onclick="openFeedbackModal('${eventItem.id}')">★ Give Feedback</button>
           </div>
 
-          ${eventFeedbackList.length
-      ? `
+          ${
+            eventFeedbackList.length
+              ? `
             <div class="feedback-grid">
               ${eventFeedbackList
-        .map(
-          (fb) => `
+                .map(
+                  (fb) => `
                 <div class="feedback-card">
                   <div class="feedback-header">
                     <span class="feedback-author">${escapeHtml(fb.name)}</span>
@@ -1351,34 +1358,35 @@ function renderDetail(eventId) {
                   <span class="feedback-time">${formatDisplayDate(fb.at.slice(0, 10))}</span>
                 </div>
               `
-        )
-        .join('')}
+                )
+                .join('')}
             </div>
           `
-      : '<p class="empty" style="padding: 24px;">No feedback submitted for this event yet.</p>'
-    }
+              : '<p class="empty" style="padding: 24px;">No feedback submitted for this event yet.</p>'
+          }
         </div>
 
-        ${relatedEvents.length
-      ? `
+        ${
+          relatedEvents.length
+            ? `
           <div class="panel">
             <h2>More ${escapeHtml(eventItem.type)} events</h2>
             <div class="rels">
               ${relatedEvents
-        .map(
-          (relItem) => `
+                .map(
+                  (relItem) => `
                 <button type="button" class="rel" onclick="showEvent('${relItem.id}')">
                   <b>${escapeHtml(relItem.name)}</b>
                   <span>${escapeHtml(relItem.date)} · ${escapeHtml(relItem.venue)}</span>
                 </button>
               `
-        )
-        .join('')}
+                )
+                .join('')}
             </div>
           </div>
         `
-      : ''
-    }
+            : ''
+        }
       </div>
 
       <aside class="dside panel">
@@ -1396,14 +1404,15 @@ function renderDetail(eventId) {
             ${isRegistrationClosed || isEventFull ? 'disabled' : ''}
             onclick="openReg('${eventItem.id}')"
           >
-            ${isRegistrationClosed
-      ? 'Registration closed'
-      : isEventFull
-        ? 'Event full'
-        : eventItem.fee
-          ? 'Register and pay ₹' + eventItem.fee
-          : 'Register now'
-    }
+            ${
+              isRegistrationClosed
+                ? 'Registration closed'
+                : isEventFull
+                ? 'Event full'
+                : eventItem.fee
+                ? 'Register and pay ₹' + eventItem.fee
+                : 'Register now'
+            }
           </button>
         </p>
         <p style="margin: 10px 0 0;">
@@ -1529,8 +1538,9 @@ function openReg(eventId) {
         </div>
       </div>
 
-      ${eventItem.team
-      ? `
+      ${
+        eventItem.team
+          ? `
         <div class="row">
           <div>
             <label for="r_tn">Team name</label>
@@ -1542,11 +1552,12 @@ function openReg(eventId) {
           </div>
         </div>
       `
-      : ''
-    }
+          : ''
+      }
 
-      ${eventItem.fee
-      ? `
+      ${
+        eventItem.fee
+          ? `
         <div class="panel" style="margin-top: 14px; text-align: center;">
           <b>Pay ₹${eventItem.fee} to ${escapeHtml(eventItem.upi || 'the organizer')}</b>
           <div class="qr" id="payqr" style="display: flex; justify-content: center; margin: 10px 0;"></div>
@@ -1554,8 +1565,8 @@ function openReg(eventId) {
           <input id="r_tx" placeholder="12-digit UPI reference ID">
         </div>
       `
-      : ''
-    }
+          : ''
+      }
 
       <div id="r_err"></div>
       <p style="margin-top: 16px;">
@@ -1697,9 +1708,10 @@ function showTicket(ticketId, isFreshRegistration = false) {
   const eventItem = getEventById(registrationRecord.eid) || { date: '', venue: '' };
 
   const modalHtml = `
-    ${isFreshRegistration
-      ? '<div class="msg">Registration successful! Your official admission ticket is generated below.</div>'
-      : ''
+    ${
+      isFreshRegistration
+        ? '<div class="msg">Registration successful! Your official admission ticket is generated below.</div>'
+        : ''
     }
     <div class="ticket" id="ticketBox">
       <div class="top">
@@ -1714,10 +1726,11 @@ function showTicket(ticketId, isFreshRegistration = false) {
       <div class="bd">
         <b style="font-size: 1.15rem; display: block; margin-bottom: 2px;">${escapeHtml(registrationRecord.name)}</b>
         <span class="mut">Reg: ${escapeHtml(registrationRecord.reg)} · Roll: ${escapeHtml(registrationRecord.roll)}</span>
-        ${registrationRecord.team
-      ? `<br><span class="mut">Team: ${escapeHtml(registrationRecord.team)} (${escapeHtml(registrationRecord.size)} members)</span>`
-      : ''
-    }
+        ${
+          registrationRecord.team
+            ? `<br><span class="mut">Team: ${escapeHtml(registrationRecord.team)} (${escapeHtml(registrationRecord.size)} members)</span>`
+            : ''
+        }
         <div class="qr" id="tqr"></div>
         <b style="letter-spacing: 1px; font-size: 1rem;">${escapeHtml(registrationRecord.rid)}</b>
         <br>
@@ -1770,11 +1783,11 @@ function renderMine() {
           </thead>
           <tbody>
             ${registrations
-        .map(
-          (reg) => {
-            const personalBg = getPersonalEventBgConfig(reg.eid);
-            const hasBg = Boolean(personalBg && (personalBg.image || personalBg.color));
-            return `
+              .map(
+                (reg) => {
+                  const personalBg = getPersonalEventBgConfig(reg.eid);
+                  const hasBg = Boolean(personalBg && (personalBg.image || personalBg.color));
+                  return `
                     <tr>
                       <td>
                         <strong>${escapeHtml(reg.ename)}</strong>
@@ -1800,9 +1813,9 @@ function renderMine() {
                       </td>
                     </tr>
                   `;
-          }
-        )
-        .join('')}
+                }
+              )
+              .join('')}
           </tbody>
         </table>
       </div>
@@ -1894,8 +1907,8 @@ function openFeedbackModal(eventId) {
       <input type="hidden" id="fb_rating" value="5">
       <div class="star-rating-select" role="radiogroup" aria-label="Rate from 1 to 5 stars">
         ${[1, 2, 3, 4, 5]
-      .map(
-        (num) => `
+          .map(
+            (num) => `
           <button
             type="button"
             class="star-btn ${num <= 5 ? 'active' : ''}"
@@ -1904,8 +1917,8 @@ function openFeedbackModal(eventId) {
             aria-label="${num} star${num > 1 ? 's' : ''}"
           >★</button>
         `
-      )
-      .join('')}
+          )
+          .join('')}
         <span class="star-label" id="fb_rating_label">5 · Excellent</span>
       </div>
 
@@ -2139,7 +2152,7 @@ function renderOrg() {
       const itemClub = (item.club || '').trim().toLowerCase();
       const itemCreatorId = (item.creatorId || '').trim().toLowerCase();
       return (currentClub && itemClub === currentClub) ||
-        (currentOrgId && itemCreatorId === currentOrgId);
+             (currentOrgId && itemCreatorId === currentOrgId);
     });
 
   // Deduplicate by event ID, prioritizing Approved over Waiting
@@ -2179,12 +2192,13 @@ function renderOrg() {
                   <span class="tag ${statusLabel === 'Approved' || statusLabel === 'Active' ? 'free' : 'paid'}">
                     ${statusLabel === 'Approved' || statusLabel === 'Active' ? 'Live on Site' : 'Waiting for approval'}
                   </span>
-                  ${verifyEventOwnership(eventItem.id)
-                ? `<button type="button" class="btn sm btn--outline" onclick="openBgCustomizerModal('${eventItem.id}')" title="Customize this event card's background">
+                  ${
+                    verifyEventOwnership(eventItem.id)
+                      ? `<button type="button" class="btn sm btn--outline" onclick="openBgCustomizerModal('${eventItem.id}')" title="Customize this event card's background">
                           🎨 Customize Background
                         </button>`
-                : ''
-              }
+                      : ''
+                  }
                 </div>
               </div>
             `
@@ -2416,10 +2430,10 @@ function renderBgCustomizerModalHtml(eventItem) {
           <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
             <span class="mut" style="font-size: 11px;">Presets:</span>
             ${['#0f172a', '#1e1b4b', '#18181b', '#172554', '#064e3b', '#450a0a', '#3b0764', '#1f2937']
-      .map(
-        (c) => `<button type="button" style="width:22px; height:22px; border-radius:50%; background:${c}; border:1px solid rgba(255,255,255,0.25); cursor:pointer;" onclick="handleBgColorPickerChange('${c}')" title="${c}"></button>`
-      )
-      .join('')}
+              .map(
+                (c) => `<button type="button" style="width:22px; height:22px; border-radius:50%; background:${c}; border:1px solid rgba(255,255,255,0.25); cursor:pointer;" onclick="handleBgColorPickerChange('${c}')" title="${c}"></button>`
+              )
+              .join('')}
           </div>
         </div>
 
@@ -2453,12 +2467,13 @@ function renderBgCustomizerModalHtml(eventItem) {
       <!-- Actions -->
       <div class="bg-actions-row">
         <div>
-          ${hasExisting
-      ? `<button type="button" class="btn btn--sm bad" onclick="handleRemoveBackground()">
+          ${
+            hasExisting
+              ? `<button type="button" class="btn btn--sm bad" onclick="handleRemoveBackground()">
                   🗑️ Remove Background
                 </button>`
-      : ''
-    }
+              : ''
+          }
         </div>
         <div class="bg-actions-right">
           <button type="button" class="btn btn--sm sec" onclick="closeModal()">
@@ -2717,8 +2732,8 @@ function renderAdmin() {
           </thead>
           <tbody>
             ${registrations
-          .map(
-            (reg, index) => `
+              .map(
+                (reg, index) => `
               <tr>
                 <td><code>${escapeHtml(reg.rid)}</code></td>
                 <td><strong>${escapeHtml(reg.ename)}</strong></td>
@@ -2729,10 +2744,11 @@ function renderAdmin() {
                   <span class="tag ${reg.status === 'Confirmed' ? 'free' : 'paid'}">
                     ${escapeHtml(reg.status)}
                   </span>
-                  ${reg.status !== 'Confirmed'
-                ? `<button type="button" class="btn sm sec" style="margin-left: 4px;" onclick="verify(${index})">Verify</button>`
-                : ''
-              }
+                  ${
+                    reg.status !== 'Confirmed'
+                      ? `<button type="button" class="btn sm sec" style="margin-left: 4px;" onclick="verify(${index})">Verify</button>`
+                      : ''
+                  }
                 </td>
                 <td style="text-align: center;">
                   <input
@@ -2744,8 +2760,8 @@ function renderAdmin() {
                 </td>
               </tr>
             `
-          )
-          .join('')}
+              )
+              .join('')}
           </tbody>
         </table>
       `;
@@ -2838,8 +2854,8 @@ function renderAdminFeedback() {
           </thead>
           <tbody>
             ${filteredList
-          .map(
-            (fb) => `
+              .map(
+                (fb) => `
               <tr>
                 <td><strong>${escapeHtml(fb.ename)}</strong></td>
                 <td>${escapeHtml(fb.name)}</td>
@@ -2854,8 +2870,8 @@ function renderAdminFeedback() {
                 </td>
               </tr>
             `
-          )
-          .join('')}
+              )
+              .join('')}
           </tbody>
         </table>
       `;
@@ -3314,7 +3330,7 @@ window.toggleTheme = toggleTheme;
   if (!canvas || !hero) return;
 
   const gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: true }) ||
-    canvas.getContext('experimental-webgl');
+             canvas.getContext('experimental-webgl');
 
   if (!gl) {
     init2DOceanFallback(canvas, hero);
