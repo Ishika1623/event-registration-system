@@ -96,19 +96,54 @@
 ═══════════════════════════════════════ -->
   <section class="hero" id="hero">
 
-    <!-- Layered atmospheric background -->
+    <!-- Layered atmospheric background with multi-depth 3D parallax -->
     <div class="hero-bg" aria-hidden="true">
-      <div class="hero-layer hero-layer--base"></div>
+      <!-- Far Celestial Layer (Moon - deepest depth, slowest drift) -->
+      <div class="hero-plx-layer" data-speed="0.18">
+        <div class="celestial-moon">
+          <div class="moon-body"></div>
+          <div class="moon-glow"></div>
+        </div>
+      </div>
+
+      <!-- Distant Volumetric Clouds -->
+      <div class="hero-plx-layer" data-speed="0.32">
+        <div class="hero-cloud hero-cloud--back"></div>
+      </div>
+
+      <!-- Midground Architecture & Pillars -->
+      <div class="hero-plx-layer" data-speed="0.55">
+        <div class="hero-layer hero-layer--base"></div>
+      </div>
+
+      <!-- Horizon Fade & Ambient Glow -->
       <div class="hero-layer hero-layer--glow1"></div>
+
+      <!-- 3D Ocean Waves & Glossy Reflections -->
       <canvas id="hero-water-canvas" class="hero-water-canvas"></canvas>
-      <div class="hero-layer hero-layer--glow2"></div>
+
+      <!-- Warm Sunset Glow & Drifting Foreground Clouds -->
+      <div class="hero-plx-layer" data-speed="0.45">
+        <div class="hero-layer hero-layer--glow2"></div>
+        <div class="hero-cloud hero-cloud--front"></div>
+      </div>
+
+      <!-- Floating Celestial Planets & Orbs (fastest multi-depth parallax) -->
+      <div class="hero-plx-layer" data-speed="0.85">
+        <div class="orb orb--1 celestial-planet">
+          <div class="planet-ring"></div>
+        </div>
+      </div>
+      <div class="hero-plx-layer" data-speed="1.25">
+        <div class="orb orb--2 celestial-planet"></div>
+      </div>
+      <div class="hero-plx-layer" data-speed="1.65">
+        <div class="orb orb--3 celestial-planet"></div>
+      </div>
+
+      <!-- Texture & Vignette Overlay -->
       <div class="hero-layer hero-layer--noise"></div>
       <div class="hero-layer hero-layer--vignette"></div>
-      <!-- Floating orbs -->
-      <div class="orb orb--1"></div>
-      <div class="orb orb--2"></div>
-      <div class="orb orb--3"></div>
-      <!-- Grid lines -->
       <div class="hero-grid"></div>
     </div>
 

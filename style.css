@@ -330,8 +330,15 @@ nav button.on::after {
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  transform: translate3d(var(--mouse-shift-x, 0px), var(--mouse-shift-y, 0px), 0);
-  transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/* ── Parallax Depth Layers ── */
+.hero-plx-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
   will-change: transform;
 }
 
@@ -476,6 +483,114 @@ nav button.on::after {
 @keyframes floatOrb {
   from { transform: translate(0, 0) scale(1); }
   to   { transform: translate(-20px, -30px) scale(1.08); }
+}
+
+/* ── Planet ring on orb 1 ── */
+.planet-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 165%;
+  height: 38%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(200, 220, 255, 0.25);
+  border-top-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 16px rgba(180, 210, 255, 0.22);
+  transform: translate(-50%, -50%) rotate(-24deg);
+  pointer-events: none;
+}
+
+/* ── Celestial Moon ── */
+.celestial-moon {
+  position: absolute;
+  top: 13%;
+  left: 20%;
+  width: 86px;
+  height: 86px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 35px rgba(200, 225, 255, 0.45));
+  will-change: transform;
+}
+
+.moon-body {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e6effa 45%, #b8cde3 85%, #8aa4c2 100%);
+  box-shadow:
+    inset -10px -10px 24px rgba(10, 25, 50, 0.75),
+    inset 4px 4px 12px rgba(255, 255, 255, 0.9),
+    0 0 30px rgba(180, 215, 255, 0.4),
+    0 0 70px rgba(160, 200, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.moon-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 45% 40%, rgba(130, 160, 195, 0.35) 0%, transparent 22%),
+    radial-gradient(circle at 65% 60%, rgba(120, 150, 185, 0.3) 0%, transparent 18%),
+    radial-gradient(circle at 30% 65%, rgba(140, 170, 205, 0.25) 0%, transparent 15%);
+  opacity: 0.7;
+}
+
+.moon-glow {
+  position: absolute;
+  inset: -40px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(190, 220, 255, 0.18) 0%, rgba(180, 210, 255, 0.05) 50%, transparent 75%);
+  animation: moonGlowPulse 7s ease-in-out infinite alternate;
+}
+
+@keyframes moonGlowPulse {
+  0%   { transform: scale(0.95); opacity: 0.75; }
+  100% { transform: scale(1.08); opacity: 1.0; }
+}
+
+/* ── Volumetric Atmospheric Clouds ── */
+.hero-cloud {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(42px);
+  will-change: transform, opacity;
+}
+
+.hero-cloud--back {
+  top: 17%;
+  left: 8%;
+  width: 580px;
+  height: 180px;
+  background: radial-gradient(ellipse at center, rgba(160, 190, 230, 0.09) 0%, rgba(140, 170, 210, 0.04) 50%, transparent 75%);
+  animation: cloudDriftBack 34s ease-in-out infinite alternate;
+}
+
+.hero-cloud--front {
+  top: 30%;
+  right: 10%;
+  width: 650px;
+  height: 220px;
+  background: radial-gradient(ellipse at center, rgba(220, 180, 120, 0.10) 0%, rgba(200, 160, 90, 0.03) 55%, transparent 80%);
+  animation: cloudDriftFront 28s ease-in-out infinite alternate;
+}
+
+@keyframes cloudDriftBack {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(45px); }
+}
+
+@keyframes cloudDriftFront {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50px); }
+}
+
+body.light-mode .celestial-moon {
+  opacity: 0.45;
+  filter: drop-shadow(0 0 25px rgba(200, 180, 120, 0.3));
 }
 
 /* Hero Content */
@@ -2347,12 +2462,14 @@ body.light-mode .footer-logo span { color: rgba(0,0,0,0.70); }
 @media (prefers-reduced-motion: reduce) {
   .hero-layer--base,
   .hero-layer--glow2,
-  .orb {
+  .orb,
+  .moon-glow,
+  .hero-cloud {
     animation: none !important;
   }
-  .hero-bg {
+  .hero-plx-layer,
+  .hero-content {
     transform: none !important;
-    transition: none !important;
   }
 }
 

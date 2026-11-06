@@ -2769,38 +2769,79 @@ window.toggleTheme = toggleTheme;
   });
 })();
 
-// --- 21. Hero Interactive Motion & Parallax ---
-(function initHeroMotion() {
+// --- 21. Multi-Layer 3D Depth & Mouse Parallax ---
+(function initHeroParallax() {
   const hero = document.getElementById('hero');
   if (!hero) return;
 
+  const layers = Array.from(hero.querySelectorAll('.hero-plx-layer[data-speed]'));
+  const heroContent = hero.querySelector('.hero-content');
+
+  // Normalized mouse target coordinates (-1.0 to +1.0 from center)
   let targetX = 0, targetY = 0;
+  // Current smoothly interpolated coordinates (LERP)
   let currentX = 0, currentY = 0;
 
-  function updateParallax() {
-    currentX += (targetX - currentX) * 0.05;
-    currentY += (targetY - currentY) * 0.05;
+  // Max translation range in pixels for speed factor = 1.0
+  const BASE_SHIFT_X = 38;
+  const BASE_SHIFT_Y = 24;
 
-    hero.style.setProperty('--mouse-shift-x', `${currentX.toFixed(2)}px`);
-    hero.style.setProperty('--mouse-shift-y', `${currentY.toFixed(2)}px`);
+  // Damping coefficient: 0.045 gives silky, high-end inertia without overshoot or jitter
+  const SMOOTHING = 0.045;
 
-    requestAnimationFrame(updateParallax);
+  let isHeroVisible = true;
+  if (window.IntersectionObserver) {
+    const obs = new IntersectionObserver((entries) => {
+      isHeroVisible = entries[0].isIntersecting;
+    });
+    obs.observe(hero);
   }
 
-  hero.addEventListener('mousemove', (e) => {
+  function renderParallax() {
+    if (isHeroVisible) {
+      // Exponential decay LERP: guaranteed 100% jitter-free continuous smoothing
+      currentX += (targetX - currentX) * SMOOTHING;
+      currentY += (targetY - currentY) * SMOOTHING;
+
+      // Update each depth layer with its specific movement speed
+      for (let i = 0; i < layers.length; i++) {
+        const layer = layers[i];
+        const speed = parseFloat(layer.dataset.speed) || 0.5;
+        const x = (currentX * BASE_SHIFT_X * speed).toFixed(2);
+        const y = (currentY * BASE_SHIFT_Y * speed).toFixed(2);
+        layer.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      }
+
+      // Subtle counter-parallax on foreground typography for dimensional floating depth
+      if (heroContent) {
+        const cx = (currentX * -10).toFixed(2);
+        const cy = (currentY * -7).toFixed(2);
+        heroContent.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
+      }
+    }
+
+    requestAnimationFrame(renderParallax);
+  }
+
+  // Smooth mouse move capture relative to viewport center
+  window.addEventListener('mousemove', (e) => {
     const rect = hero.getBoundingClientRect();
-    const nx = (e.clientX - rect.left) / rect.width - 0.5;
-    const ny = (e.clientY - rect.top) / rect.height - 0.5;
-    targetX = nx * -24;
-    targetY = ny * -16;
+    if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+
+    const centerX = rect.left + rect.width * 0.5;
+    const centerY = rect.top + rect.height * 0.5;
+
+    targetX = Math.max(-1, Math.min(1, (e.clientX - centerX) / (window.innerWidth * 0.5)));
+    targetY = Math.max(-1, Math.min(1, (e.clientY - centerY) / (window.innerHeight * 0.5)));
   }, { passive: true });
 
-  hero.addEventListener('mouseleave', () => {
+  // When mouse leaves the window, smoothly return all layers to center
+  document.addEventListener('mouseleave', () => {
     targetX = 0;
     targetY = 0;
   });
 
-  requestAnimationFrame(updateParallax);
+  requestAnimationFrame(renderParallax);
 })();
 
 // --- 22. 3D Ocean Waves & Glossy Realistic Reflections ---
