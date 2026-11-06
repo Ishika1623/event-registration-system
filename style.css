@@ -329,14 +329,46 @@ nav button.on::after {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
+  transform: translate3d(var(--mouse-shift-x, 0px), var(--mouse-shift-y, 0px), 0);
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+  will-change: transform;
 }
 
-/* Base — the cinematic background photo */
+/* Base — the cinematic background photo with Ken Burns zoom and pan motion */
 .hero-layer--base {
   position: absolute;
-  inset: 0;
+  inset: -6%;
+  width: 112%;
+  height: 112%;
   background:
     url('hero-bg.jpg') center center / cover no-repeat;
+  will-change: transform, filter;
+  transform-origin: center center;
+  animation: heroCinematicDrift 26s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+}
+
+@keyframes heroCinematicDrift {
+  0% {
+    transform: scale(1.02) translate3d(0, 0, 0);
+    filter: brightness(0.96) contrast(1.02);
+  }
+  25% {
+    transform: scale(1.09) translate3d(-1.5%, -1.2%, 0);
+    filter: brightness(1.02) contrast(1.04);
+  }
+  50% {
+    transform: scale(1.15) translate3d(1.2%, -2%, 0);
+    filter: brightness(0.98) contrast(1.03);
+  }
+  75% {
+    transform: scale(1.10) translate3d(-1%, 1.5%, 0);
+    filter: brightness(1.04) contrast(1.02);
+  }
+  100% {
+    transform: scale(1.05) translate3d(1.8%, 1%, 0);
+    filter: brightness(1.0) contrast(1.05);
+  }
 }
 
 /* Dark overlay so text stays readable */
@@ -352,12 +384,40 @@ nav button.on::after {
     linear-gradient(to bottom, rgba(0,0,0,.45) 0%, transparent 30%);
 }
 
-/* Warm gold tint that echoes the sunset in the photo */
+/* 3D Ocean Waves & Glossy Reflections Canvas */
+.hero-water-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  display: block;
+}
+
+/* Warm gold tint that echoes the sunset in the photo with atmospheric breathing */
 .hero-layer--glow2 {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 55% 40% at 62% 58%, rgba(200,160,80,.10) 0%, transparent 60%);
+    radial-gradient(ellipse 55% 40% at 62% 58%, rgba(200,160,80,.14) 0%, transparent 60%);
+  will-change: opacity, transform;
+  animation: heroAtmosphericPulse 9s ease-in-out infinite alternate;
+}
+
+@keyframes heroAtmosphericPulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(1.01);
+  }
 }
 
 /* Fine noise texture — very subtle over photo */
@@ -2067,6 +2127,18 @@ body.light-mode #site-footer {
 }
 body.light-mode .footer-note { color: rgba(0,0,0,0.40); }
 body.light-mode .footer-logo span { color: rgba(0,0,0,0.70); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-layer--base,
+  .hero-layer--glow2,
+  .orb {
+    animation: none !important;
+  }
+  .hero-bg {
+    transform: none !important;
+    transition: none !important;
+  }
+}
 
 /* ── 20. EVENT FEEDBACK & REVIEWS ────────────────────── */
 .tag.rating-tag {

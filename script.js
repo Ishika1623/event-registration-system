@@ -2233,3 +2233,343 @@ window.toggleTheme = toggleTheme;
     }
   });
 })();
+
+// --- 21. Hero Interactive Motion & Parallax ---
+(function initHeroMotion() {
+  const hero = document.getElementById('hero');
+  if (!hero) return;
+
+  let targetX = 0, targetY = 0;
+  let currentX = 0, currentY = 0;
+
+  function updateParallax() {
+    currentX += (targetX - currentX) * 0.05;
+    currentY += (targetY - currentY) * 0.05;
+
+    hero.style.setProperty('--mouse-shift-x', `${currentX.toFixed(2)}px`);
+    hero.style.setProperty('--mouse-shift-y', `${currentY.toFixed(2)}px`);
+
+    requestAnimationFrame(updateParallax);
+  }
+
+  hero.addEventListener('mousemove', (e) => {
+    const rect = hero.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width - 0.5;
+    const ny = (e.clientY - rect.top) / rect.height - 0.5;
+    targetX = nx * -24;
+    targetY = ny * -16;
+  }, { passive: true });
+
+  hero.addEventListener('mouseleave', () => {
+    targetX = 0;
+    targetY = 0;
+  });
+
+  requestAnimationFrame(updateParallax);
+})();
+
+// --- 22. 3D Ocean Waves & Glossy Realistic Reflections ---
+(function initOceanWaves() {
+  const canvas = document.getElementById('hero-water-canvas');
+  const hero = document.getElementById('hero');
+  if (!canvas || !hero) return;
+
+  const gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: true }) ||
+             canvas.getContext('experimental-webgl');
+
+  if (!gl) {
+    init2DOceanFallback(canvas, hero);
+    return;
+  }
+
+  const vsSource = `
+    attribute vec2 a_pos;
+    varying vec2 v_uv;
+    void main() {
+      v_uv = (a_pos + 1.0) * 0.5;
+      gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+  `;
+
+  const fsSource = `
+    precision highp float;
+    varying vec2 v_uv;
+    uniform float u_time;
+    uniform vec2 u_res;
+    uniform vec2 u_mouse;
+    uniform float u_light_mode;
+    uniform sampler2D u_scene_tex;
+    uniform float u_has_tex;
+
+    // Multi-harmonic 3D wave simulation (Gerstner / trochoidal approximations)
+    float getWaveHeight(vec2 p, float t, vec2 mouse) {
+      float h = 0.0;
+      // Primary rolling ocean swell (heading forward-left)
+      vec2 d1 = normalize(vec2(1.0, 0.3));
+      h += sin(dot(p, d1) * 3.2 + t * 1.5) * 0.42;
+
+      // Secondary cross-swell (heading forward-right, producing diamond chop)
+      vec2 d2 = normalize(vec2(-0.65, 0.72));
+      h += sin(dot(p, d2) * 4.8 - t * 2.0) * 0.26;
+
+      // Tertiary wind chop
+      vec2 d3 = normalize(vec2(0.35, 0.92));
+      h += sin(dot(p, d3) * 10.5 + t * 3.1) * 0.12;
+
+      // Micro surface ripples / glittering facets
+      vec2 d4 = normalize(vec2(-0.85, -0.38));
+      h += sin(dot(p, d4) * 22.0 + t * 4.8) * 0.05;
+
+      vec2 d5 = normalize(vec2(0.9, -0.4));
+      h += sin(dot(p, d5) * 36.0 - t * 6.0) * 0.025;
+
+      // Interactive mouse ripple disturbance
+      vec2 mDist = p - mouse;
+      float mLen = length(mDist);
+      if (mLen < 5.0) {
+        h += sin(mLen * 12.0 - t * 8.0) * exp(-mLen * 0.8) * 0.25;
+      }
+      return h;
+    }
+
+    void main() {
+      vec2 uv = v_uv;
+      float horizon = 0.28;
+
+      // Region above the water horizon remains completely transparent
+      if (uv.y > horizon + 0.012) {
+        gl_FragColor = vec4(0.0);
+        return;
+      }
+
+      // 3D perspective projection mapping: screen (uv.x, uv.y) -> world plane (x, z)
+      float depthFactor = clamp((horizon - uv.y) / horizon, 0.001, 1.0);
+      float z = 1.0 / (depthFactor * 3.8 + 0.08);
+      float x = (uv.x - 0.5) * z * 2.4;
+      vec2 worldPos = vec2(x, z);
+
+      vec2 mPos = vec2((u_mouse.x - 0.5) * 4.0, (1.0 - u_mouse.y) * 4.0 + 0.5);
+
+      float t = u_time * 0.85;
+      float eps = 0.035;
+      float hC = getWaveHeight(worldPos, t, mPos);
+      float hX = getWaveHeight(worldPos + vec2(eps, 0.0), t, mPos);
+      float hZ = getWaveHeight(worldPos + vec2(0.0, eps), t, mPos);
+
+      // Compute 3D surface normal vector
+      float slopeX = (hX - hC) / eps;
+      float slopeZ = (hZ - hC) / eps;
+      vec3 normal = normalize(vec3(-slopeX * 0.55, 1.0, -slopeZ * 0.55));
+      vec3 viewDir = normalize(vec3(uv.x - 0.5, depthFactor * 0.9 + 0.15, 1.0));
+
+      // Fresnel reflection factor
+      float NdotV = clamp(dot(normal, viewDir), 0.0, 1.0);
+      float fresnel = 0.06 + 0.94 * pow(1.0 - NdotV, 4.5);
+
+      // 1. REALISTIC PILLARS & ARCHITECTURE REFLECTION
+      vec3 reflColor = vec3(0.0);
+      if (u_has_tex > 0.5) {
+        float reflDistortX = normal.x * (0.04 + depthFactor * 0.035);
+        float reflDistortY = normal.z * (0.03 + depthFactor * 0.025);
+        vec2 baseReflUv = vec2(
+          clamp(uv.x + reflDistortX, 0.001, 0.999),
+          clamp(horizon + (horizon - uv.y) * 1.6 + reflDistortY, 0.001, 0.999)
+        );
+
+        // Glossy vertical streak blur (3-tap anisotropic sampling)
+        vec3 tap0 = texture2D(u_scene_tex, baseReflUv).rgb;
+        vec2 tap1Uv = vec2(baseReflUv.x, clamp(baseReflUv.y + 0.012, 0.001, 0.999));
+        vec2 tap2Uv = vec2(baseReflUv.x, clamp(baseReflUv.y - 0.012, 0.001, 0.999));
+        vec3 tap1 = texture2D(u_scene_tex, tap1Uv).rgb;
+        vec3 tap2 = texture2D(u_scene_tex, tap2Uv).rgb;
+        reflColor = tap0 * 0.5 + (tap1 + tap2) * 0.25;
+      } else {
+        float pillarCols = smoothstep(0.4, 0.6, abs(sin((uv.x + normal.x * 0.03) * 20.0)));
+        reflColor = mix(vec3(0.12, 0.1, 0.08), vec3(0.35, 0.28, 0.2), pillarCols);
+      }
+
+      // 2. GOLDEN SUNLIGHT REFLECTION (Specular glitter path)
+      vec3 sunDir = normalize(vec3(0.38, 0.48, 0.78));
+      vec3 sunHalf = normalize(sunDir + viewDir);
+      float NdotH_sun = max(0.0, dot(normal, sunHalf));
+      float sunSharpSpec = pow(NdotH_sun, 90.0) * 2.8;
+      float sunGlossSheen = pow(NdotH_sun, 14.0) * 0.55;
+      float sunColumn = exp(-pow((uv.x - 0.62) * 4.0, 2.0));
+      vec3 sunColor = vec3(1.0, 0.82, 0.42) * (sunSharpSpec + sunGlossSheen * sunColumn);
+
+      // 3. MOONLIGHT REFLECTION (Cool silver-cyan shimmer path)
+      vec3 moonDir = normalize(vec3(-0.42, 0.62, 0.65));
+      vec3 moonHalf = normalize(moonDir + viewDir);
+      float NdotH_moon = max(0.0, dot(normal, moonHalf));
+      float moonSpec = pow(NdotH_moon, 60.0) * 1.5;
+      float moonColumn = exp(-pow((uv.x - 0.28) * 5.0, 2.0));
+      vec3 moonColor = vec3(0.68, 0.86, 1.0) * (moonSpec * (0.6 + 0.4 * moonColumn));
+
+      // 4. WATER BODY DEPTH & COLOR GRADIENT
+      vec3 deepColor = mix(vec3(0.012, 0.035, 0.08), vec3(0.08, 0.28, 0.42), u_light_mode);
+      vec3 shallowColor = mix(vec3(0.035, 0.15, 0.22), vec3(0.18, 0.52, 0.68), u_light_mode);
+      float waveNormalized = clamp(hC * 0.6 + 0.5, 0.0, 1.0);
+      vec3 waterBody = mix(deepColor, shallowColor, waveNormalized * (1.0 - depthFactor * 0.4));
+
+      // 5. WAVE CREST GLINT & MICRO-RIPPLE SPARKLE
+      float crestPeak = smoothstep(0.48, 0.75, hC);
+      vec3 crestGlint = vec3(0.85, 0.94, 1.0) * crestPeak * 0.35;
+
+      // 6. FINAL COMPOSITE WITH FRESNEL LIGHTING
+      vec3 waterWithRefl = mix(waterBody, reflColor * 0.85, fresnel * 0.75);
+      vec3 finalColor = waterWithRefl + (sunColor + moonColor) * (0.4 + fresnel * 0.6) + crestGlint;
+
+      // Soft atmospheric horizon mist
+      float edgeAlpha = smoothstep(horizon + 0.012, horizon - 0.018, uv.y);
+      gl_FragColor = vec4(finalColor, edgeAlpha * 0.94);
+    }
+  `;
+
+  function createShader(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.warn('Water shader error:', gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+
+  const vShader = createShader(gl.VERTEX_SHADER, vsSource);
+  const fShader = createShader(gl.FRAGMENT_SHADER, fsSource);
+  if (!vShader || !fShader) return;
+
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vShader);
+  gl.attachShader(prog, fShader);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.warn('Program link error:', gl.getProgramInfoLog(prog));
+    return;
+  }
+
+  gl.useProgram(prog);
+
+  // Quad geometry
+  const posBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const aPos = gl.getAttribLocation(prog, 'a_pos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+  // Uniform locations
+  const uTimeLoc = gl.getUniformLocation(prog, 'u_time');
+  const uResLoc = gl.getUniformLocation(prog, 'u_res');
+  const uMouseLoc = gl.getUniformLocation(prog, 'u_mouse');
+  const uLightModeLoc = gl.getUniformLocation(prog, 'u_light_mode');
+  const uSceneTexLoc = gl.getUniformLocation(prog, 'u_scene_tex');
+  const uHasTexLoc = gl.getUniformLocation(prog, 'u_has_tex');
+
+  // Load hero-bg.jpg texture for realistic pillar & sky reflections
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  // Default placeholder pixel
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([20, 30, 45, 255]));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  let hasTexture = 0.0;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    hasTexture = 1.0;
+  };
+  img.src = 'hero-bg.jpg';
+
+  let mouseX = 0.5, mouseY = 0.5;
+  let targetMouseX = 0.5, targetMouseY = 0.5;
+
+  hero.addEventListener('mousemove', (e) => {
+    const rect = hero.getBoundingClientRect();
+    targetMouseX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    targetMouseY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+  }, { passive: true });
+
+  hero.addEventListener('mouseleave', () => {
+    targetMouseX = 0.5;
+    targetMouseY = 0.5;
+  });
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = Math.floor(hero.clientWidth * dpr);
+    const h = Math.floor(hero.clientHeight * dpr);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+
+  let isVisible = true;
+  if (window.IntersectionObserver) {
+    const obs = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+    });
+    obs.observe(hero);
+  }
+
+  const startTime = performance.now();
+  function render(now) {
+    if (isVisible && canvas.width > 0 && canvas.height > 0) {
+      mouseX += (targetMouseX - mouseX) * 0.05;
+      mouseY += (targetMouseY - mouseY) * 0.05;
+
+      const elapsed = (now - startTime) * 0.001;
+      const isLightMode = document.body.classList.contains('light-mode') ? 1.0 : 0.0;
+
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.useProgram(prog);
+
+      gl.uniform1f(uTimeLoc, elapsed);
+      gl.uniform2f(uResLoc, canvas.width, canvas.height);
+      gl.uniform2f(uMouseLoc, mouseX, mouseY);
+      gl.uniform1f(uLightModeLoc, isLightMode);
+      gl.uniform1f(uHasTexLoc, hasTexture);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.uniform1i(uSceneTexLoc, 0);
+
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+    requestAnimationFrame(render);
+  }
+
+  requestAnimationFrame(render);
+
+  function init2DOceanFallback(c, h) {
+    const ctx = c.getContext('2d');
+    if (!ctx) return;
+    function render2D() {
+      const w = c.width = h.clientWidth;
+      const ch = c.height = h.clientHeight;
+      const horizon = ch * 0.72; // 28% from bottom = 72% from top
+      ctx.clearRect(0, 0, w, ch);
+      const grad = ctx.createLinearGradient(0, horizon, 0, ch);
+      grad.addColorStop(0, 'rgba(8, 25, 45, 0.85)');
+      grad.addColorStop(1, 'rgba(2, 8, 16, 0.95)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, horizon, w, ch - horizon);
+      requestAnimationFrame(render2D);
+    }
+    requestAnimationFrame(render2D);
+  }
+})();
