@@ -919,6 +919,222 @@ nav button.on::after {
   border-color: var(--bd-2);
 }
 
+/* Custom background styles on event cards */
+.ev.has-custom-bg {
+  position: relative;
+  background-color: var(--ev-bg-color, transparent);
+  background-image: var(--ev-bg-image, none);
+  background-size: var(--ev-bg-size, cover);
+  background-position: var(--ev-bg-pos, center);
+  background-repeat: no-repeat;
+}
+
+.ev.has-custom-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 15, var(--ev-overlay-opacity, 0.72)) 0%,
+    rgba(10, 10, 15, calc(var(--ev-overlay-opacity, 0.72) + 0.12)) 100%
+  );
+  backdrop-filter: var(--ev-backdrop-blur, blur(2px));
+  -webkit-backdrop-filter: var(--ev-backdrop-blur, blur(2px));
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+
+.ev.has-custom-bg .date,
+.ev.has-custom-bg .in,
+.ev.has-custom-bg .ev-footer,
+.ev.has-custom-bg .ev-bg-badge {
+  position: relative;
+  z-index: 2;
+}
+
+.ev.has-custom-bg .date {
+  background: rgba(15, 15, 20, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ev.has-custom-bg .ev-footer {
+  background: rgba(10, 10, 15, 0.65);
+}
+
+body.light-mode .ev.has-custom-bg::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, var(--ev-overlay-opacity, 0.78)) 0%,
+    rgba(245, 245, 250, calc(var(--ev-overlay-opacity, 0.78) + 0.12)) 100%
+  );
+}
+
+body.light-mode .ev.has-custom-bg .date {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Custom background modal & preview styles */
+.bg-customizer-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.bg-customizer-modal h3 {
+  font-family: var(--font-display);
+  font-size: var(--size-xl);
+  color: var(--white);
+  margin: 0;
+}
+
+body.light-mode .bg-customizer-modal h3 {
+  color: #1a1a1a;
+}
+
+.bg-mode-tabs {
+  display: flex;
+  gap: 8px;
+  background: rgba(255,255,255,.04);
+  padding: 4px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--bd-1);
+}
+
+.bg-mode-btn {
+  flex: 1;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: all var(--fast) var(--ease);
+}
+
+.bg-mode-btn.active {
+  background: var(--gold);
+  color: var(--dark-1);
+}
+
+.bg-customizer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bg-section-box {
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--bd-1);
+  border-radius: var(--r3);
+  padding: 14px;
+}
+
+.bg-preview-wrapper {
+  margin-top: 6px;
+  border: 1px dashed var(--bd-2);
+  border-radius: var(--r4);
+  padding: 12px;
+  background: rgba(0,0,0,.3);
+}
+
+.bg-preview-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bg-preview-card-slot {
+  pointer-events: none;
+}
+
+.bg-preview-card-slot .ev {
+  margin: 0;
+  cursor: default;
+}
+
+.bg-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 540px) {
+  .bg-controls-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bg-color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bg-color-input {
+  width: 48px;
+  height: 40px;
+  border: 1px solid var(--bd-2);
+  border-radius: var(--r2);
+  padding: 2px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.bg-color-hex-text {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--size-xs);
+  padding: 10px;
+  border-radius: var(--r2);
+  border: 1px solid var(--bd-1);
+  background: rgba(255,255,255,.04);
+  color: var(--text-1);
+}
+
+.bg-file-dropzone {
+  border: 2px dashed var(--bd-2);
+  border-radius: var(--r3);
+  padding: 18px 12px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(255,255,255,.02);
+  transition: all var(--fast) var(--ease);
+}
+
+.bg-file-dropzone:hover {
+  border-color: var(--gold);
+  background: rgba(200,169,110,.05);
+}
+
+.bg-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--bd-1);
+}
+
+.bg-actions-right {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .ev-inner { display: flex; flex: 1; }
 
 /* Date column */

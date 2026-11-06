@@ -301,6 +301,36 @@
 
         <div id="o_out"></div>
         <div id="o_list"></div>
+
+        <!-- Section: Customize Event Backgrounds -->
+        <div id="o_bg_section" class="panel" style="margin-top: 32px; padding: 20px; border: 1px solid var(--bd-1); border-radius: var(--r4); background: rgba(255,255,255,.02);">
+          <div class="panel-head" style="margin-bottom: 12px; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <p class="section-label" style="margin: 0; font-size: var(--size-xs); color: var(--gold);">Card Appearance</p>
+              <h2 class="panel-title" style="margin: 4px 0 0; font-size: var(--size-lg);">Customize Event Background</h2>
+            </div>
+            <span class="tag pri">Organizer Tool</span>
+          </div>
+          <p class="muted-text" style="margin-bottom: 16px; font-size: var(--size-sm);">
+            Select any event from your club (or any available event) to personalize its card with a custom background image or color.
+          </p>
+
+          <div class="form-row" style="margin-bottom: 16px;">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="bg_event_select">Select Event</label>
+              <select id="bg_event_select" onchange="onBgEventSelectChange()">
+                <option value="">-- Choose an event to customize --</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn" id="btnOpenBgModal" onclick="openBgCustomizerForSelected()" disabled>
+              🎨 Customize Background
+            </button>
+            <span id="bg_selected_hint" class="muted-text" style="font-size: var(--size-xs);">Choose an event above to open the background customizer.</span>
+          </div>
+        </div>
       </div>
     </section>
 

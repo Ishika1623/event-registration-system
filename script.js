@@ -629,9 +629,63 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+// --- 9B. Custom Event Background Storage & Styling Helpers ---
+const EVENT_BG_STORAGE_KEY = 'event_custom_bg_map';
+
+function getEventBgMap() {
+  return getStorage(EVENT_BG_STORAGE_KEY, {});
+}
+
+function getEventBgConfig(eventId) {
+  if (!eventId) return null;
+  const map = getEventBgMap();
+  return map[eventId] || null;
+}
+
+function saveEventBgConfig(eventId, config) {
+  if (!eventId) return;
+  const map = getEventBgMap();
+  if (config) {
+    map[eventId] = config;
+  } else {
+    delete map[eventId];
+  }
+  setStorage(EVENT_BG_STORAGE_KEY, map);
+}
+
+function removeEventBgConfig(eventId) {
+  saveEventBgConfig(eventId, null);
+}
+
+function buildEventBgInlineStyle(config) {
+  if (!config) return '';
+  const styles = [];
+  if (config.mode === 'color' && config.color) {
+    styles.push(`--ev-bg-color: ${config.color}`);
+  } else if (config.mode === 'image' && config.image) {
+    styles.push(`--ev-bg-image: url("${config.image}")`);
+    styles.push(`--ev-bg-size: ${config.size || 'cover'}`);
+    styles.push(`--ev-bg-pos: ${config.position || 'center'}`);
+  } else if (config.image) {
+    styles.push(`--ev-bg-image: url("${config.image}")`);
+    styles.push(`--ev-bg-size: ${config.size || 'cover'}`);
+    styles.push(`--ev-bg-pos: ${config.position || 'center'}`);
+  } else if (config.color) {
+    styles.push(`--ev-bg-color: ${config.color}`);
+  }
+
+  const opacity = typeof config.overlayOpacity === 'number' ? config.overlayOpacity : 0.72;
+  styles.push(`--ev-overlay-opacity: ${opacity}`);
+
+  const blurVal = typeof config.blur === 'number' ? config.blur : 2;
+  styles.push(`--ev-backdrop-blur: blur(${blurVal}px)`);
+
+  return styles.join('; ');
+}
+
 // --- 10. Event Cards & Catalog View ---
-function createEventCardHtml(eventItem, registrations, categoryColor) {
-  const registeredCount = registrations.filter((reg) => reg.eid === eventItem.id).length;
+function createEventCardHtml(eventItem, registrations, categoryColor, previewBgConfig) {
+  const registeredCount = (registrations || []).filter((reg) => reg.eid === eventItem.id).length;
   const seatsRemaining = eventItem.seats - registeredCount;
   const isRegistrationClosed = new Date(`${eventItem.deadline}T23:59:59`) < new Date();
   const isEventFull = seatsRemaining <= 0;
@@ -646,13 +700,18 @@ function createEventCardHtml(eventItem, registrations, categoryColor) {
     ? 'Event full'
     : 'Register';
 
-  const avgRating = getEventAverageRating(eventItem.id);
+  const avgRating = typeof getEventAverageRating === 'function' ? getEventAverageRating(eventItem.id) : { score: 0, count: 0 };
   const ratingBadgeHtml = avgRating.count
     ? `<span class="tag rating-tag" title="Average Rating: ${avgRating.score.toFixed(1)} out of 5 (${avgRating.count} review${avgRating.count > 1 ? 's' : ''})"><span style="color:var(--gold);">★</span> ${avgRating.score.toFixed(1)} <small style="font-size:0.75rem; opacity:0.8;">(${avgRating.count})</small></span>`
     : `<span class="tag rating-tag" title="No reviews yet"><span style="color:var(--gold);">★</span> New</span>`;
 
+  const bgConfig = previewBgConfig !== undefined ? previewBgConfig : getEventBgConfig(eventItem.id);
+  const hasCustomBg = Boolean(bgConfig && (bgConfig.image || bgConfig.color));
+  const bgStyle = hasCustomBg ? buildEventBgInlineStyle(bgConfig) : '';
+  const combinedStyle = `--tc: ${categoryColor};` + (bgStyle ? ` ${bgStyle};` : '');
+
   return `
-    <article class="ev" style="--tc: ${categoryColor};" onclick="showEvent('${eventItem.id}')">
+    <article class="ev ${hasCustomBg ? 'has-custom-bg' : ''}" style="${combinedStyle}" onclick="showEvent('${eventItem.id}')">
       <div class="date">
         <b>${dayNumber}</b>
         <span>${monthAbbr}</span>
@@ -664,6 +723,7 @@ function createEventCardHtml(eventItem, registrations, categoryColor) {
           </span>
           ${eventItem.team ? '<span class="tag">Team</span>' : ''}
           ${ratingBadgeHtml}
+          ${hasCustomBg ? '<span class="tag pri ev-bg-badge" title="Custom theme active">Theme</span>' : ''}
         </div>
         <h3>
           <button type="button" class="lnk">${escapeHtml(eventItem.name)}</button>
@@ -933,10 +993,24 @@ function renderDetail(eventId) {
     .filter((item) => item.type === eventItem.type && item.id !== eventId)
     .slice(0, 3);
 
+  const isOrgOfEvent = Boolean(
+    currentSession &&
+    currentSession.role === 'organizer' &&
+    currentSession.club &&
+    (eventItem.club || '').toLowerCase() === currentSession.club.toLowerCase()
+  );
+
   detailContainer.innerHTML = `
-    <p>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
       <button type="button" class="btn sec sm" onclick="goBack()">← Back to events</button>
-    </p>
+      ${
+        isOrgOfEvent || (currentSession && currentSession.role === 'admin')
+          ? `<button type="button" class="btn sm" onclick="openBgCustomizerModal('${eventItem.id}')">
+              🎨 Customize Background
+            </button>`
+          : ''
+      }
+    </div>
 
     <div class="dhero" style="--tc: ${categoryMeta.c};">
       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: var(--s2);">
@@ -1744,23 +1818,471 @@ function renderOrg() {
         <h2 style="margin-top: 20px;">Your Event Proposals</h2>
         ${mySubmissions
           .map(
-            ([eventItem, statusLabel]) => `
-          <div style="border-bottom: 1px solid var(--bd); padding: 8px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-            <div>
-              <strong>${escapeHtml(eventItem.name)}</strong>
-              <span class="mut" style="margin-left: 8px;">${escapeHtml(eventItem.date)}</span>
-            </div>
-            <span class="tag ${statusLabel === 'Approved' ? 'free' : 'paid'}">
-              ${statusLabel === 'Approved' ? 'Approved' : 'Waiting for approval'}
-            </span>
-          </div>
-        `
+            ([eventItem, statusLabel]) => {
+              const bgConfig = getEventBgConfig(eventItem.id);
+              const hasBg = Boolean(bgConfig && (bgConfig.image || bgConfig.color));
+              return `
+                <div style="border-bottom: 1px solid var(--bd); padding: 10px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <strong>${escapeHtml(eventItem.name)}</strong>
+                    <span class="mut" style="margin-left: 8px;">${escapeHtml(eventItem.date)}</span>
+                    ${hasBg ? '<span class="tag pri" style="margin-left: 6px;">Custom Theme</span>' : ''}
+                  </div>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="tag ${statusLabel === 'Approved' ? 'free' : 'paid'}">
+                      ${statusLabel === 'Approved' ? 'Approved' : 'Waiting for approval'}
+                    </span>
+                    <button type="button" class="btn sm sec" onclick="openBgCustomizerModal('${eventItem.id}')">
+                      🎨 Customize Background
+                    </button>
+                  </div>
+                </div>
+              `;
+            }
           )
           .join('')}
       `;
     } else {
       listContainer.innerHTML = '';
     }
+  }
+
+  // Populate the background customize event dropdown
+  populateBgEventDropdown();
+}
+
+// --- 14B. Event Background Customizer Logic ---
+let activeCustomizerState = {
+  eventId: null,
+  mode: 'image', // 'image' or 'color'
+  image: '',
+  color: '#1a1a2e',
+  size: 'cover',
+  position: 'center',
+  overlayOpacity: 0.72,
+  blur: 2
+};
+
+function populateBgEventDropdown() {
+  const selectEl = qs('#bg_event_select');
+  if (!selectEl) return;
+
+  const allAvailableEvents = getAllPublishedEvents();
+  const pendingRequests = getStorage('pending', []);
+  const combined = allAvailableEvents.concat(
+    pendingRequests.filter((p) => !allAvailableEvents.some((e) => e.id === p.id))
+  );
+
+  // Filter: if organizer is logged in with club, prioritize their club events, but allow all
+  const myClub = currentSession && currentSession.club ? currentSession.club.toLowerCase() : null;
+  const sorted = combined.slice().sort((a, b) => {
+    if (myClub) {
+      const aMine = (a.club || '').toLowerCase() === myClub;
+      const bMine = (b.club || '').toLowerCase() === myClub;
+      if (aMine && !bMine) return -1;
+      if (!aMine && bMine) return 1;
+    }
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  const previousVal = selectEl.value;
+  selectEl.innerHTML = '<option value="">-- Choose an event to customize --</option>' +
+    sorted
+      .map((ev) => {
+        const bgConf = getEventBgConfig(ev.id);
+        const hasBg = Boolean(bgConf && (bgConf.image || bgConf.color));
+        const clubBadge = ev.club ? ` [${ev.club}]` : '';
+        const themeBadge = hasBg ? ' ★ (Custom Theme)' : '';
+        return `<option value="${escapeHtml(ev.id)}">${escapeHtml(ev.name)}${escapeHtml(clubBadge)}${themeBadge}</option>`;
+      })
+      .join('');
+
+  if (previousVal && sorted.some((e) => e.id === previousVal)) {
+    selectEl.value = previousVal;
+  }
+  onBgEventSelectChange();
+}
+
+function onBgEventSelectChange() {
+  const selectEl = qs('#bg_event_select');
+  const btn = qs('#btnOpenBgModal');
+  const hint = qs('#bg_selected_hint');
+  if (!selectEl) return;
+
+  const eventId = selectEl.value;
+  if (btn) btn.disabled = !eventId;
+  if (hint) {
+    if (eventId) {
+      const existing = getEventBgConfig(eventId);
+      hint.textContent = existing
+        ? `Custom background is active (${existing.mode === 'color' ? 'Color' : 'Image'}). Click button to edit.`
+        : 'Ready to customize background.';
+    } else {
+      hint.textContent = 'Choose an event above to open the background customizer.';
+    }
+  }
+}
+
+function openBgCustomizerForSelected() {
+  const selectEl = qs('#bg_event_select');
+  if (selectEl && selectEl.value) {
+    openBgCustomizerModal(selectEl.value);
+  }
+}
+
+function openBgCustomizerModal(eventId) {
+  const eventItem = getAllPublishedEvents().find((e) => e.id === eventId) ||
+    getStorage('pending', []).find((e) => e.id === eventId);
+
+  if (!eventItem) {
+    alert('Event not found.');
+    return;
+  }
+
+  const existingConfig = getEventBgConfig(eventId) || {};
+  activeCustomizerState = {
+    eventId: eventId,
+    mode: existingConfig.mode || 'image',
+    image: existingConfig.image || '',
+    color: existingConfig.color || '#16192b',
+    size: existingConfig.size || 'cover',
+    position: existingConfig.position || 'center',
+    overlayOpacity: typeof existingConfig.overlayOpacity === 'number' ? existingConfig.overlayOpacity : 0.72,
+    blur: typeof existingConfig.blur === 'number' ? existingConfig.blur : 2
+  };
+
+  renderBgCustomizerModalHtml(eventItem);
+}
+
+function renderBgCustomizerModalHtml(eventItem) {
+  const hasExisting = Boolean(getEventBgConfig(activeCustomizerState.eventId));
+  const isImageMode = activeCustomizerState.mode === 'image';
+
+  const modalHtml = `
+    <div class="bg-customizer-modal">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+        <div>
+          <span class="tag pri" style="margin-bottom: 4px;">Theme Editor</span>
+          <h3 style="margin-top: 4px;">Customize Background</h3>
+          <p class="mut" style="font-size: var(--size-xs); margin-top: 2px;">
+            Styling: <strong>${escapeHtml(eventItem.name)}</strong> (${escapeHtml(eventItem.club)})
+          </p>
+        </div>
+      </div>
+
+      <!-- Mode Selector Tabs -->
+      <div class="bg-mode-tabs">
+        <button type="button" class="bg-mode-btn ${isImageMode ? 'active' : ''}" onclick="setBgCustomizerMode('image')">
+          🖼️ Image Background
+        </button>
+        <button type="button" class="bg-mode-btn ${!isImageMode ? 'active' : ''}" onclick="setBgCustomizerMode('color')">
+          🎨 Color Background
+        </button>
+      </div>
+
+      <!-- Live Preview Area -->
+      <div class="bg-preview-wrapper">
+        <div class="bg-preview-label">
+          <span>Live Card Preview</span>
+          <span style="font-size: 9px; opacity: 0.7; text-transform: none;">Updates in real time</span>
+        </div>
+        <div id="bg_live_preview_slot" class="bg-preview-card-slot">
+          <!-- Injected via renderBgLivePreview() -->
+        </div>
+      </div>
+
+      <div class="bg-customizer-body">
+        <!-- Image Options Section -->
+        <div id="bg_image_controls" class="bg-section-box" style="${isImageMode ? '' : 'display:none;'}">
+          <label style="margin-top: 0;">Upload Background Image</label>
+          <div class="bg-file-dropzone" onclick="document.getElementById('bg_file_input').click()">
+            <input type="file" id="bg_file_input" accept="image/*" style="display:none;" onchange="handleBgFileUpload(event)">
+            <div style="font-size: 1.5rem; margin-bottom: 4px;">📁</div>
+            <strong style="font-size: var(--size-sm); color: var(--gold);">Click to upload image</strong>
+            <p class="mut" style="font-size: 11px; margin: 4px 0 0;">PNG, JPG, WEBP or GIF (compressed to optimize storage)</p>
+          </div>
+
+          <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+            <span class="mut" style="font-size: 11px;">Or image URL:</span>
+            <input type="url" id="bg_url_input" placeholder="https://example.com/image.jpg"
+              value="${escapeHtml(activeCustomizerState.image && !activeCustomizerState.image.startsWith('data:') ? activeCustomizerState.image : '')}"
+              oninput="handleBgUrlChange(this.value)"
+              style="flex: 1; padding: 6px 10px; font-size: 12px;">
+          </div>
+
+          <!-- Position & Sizing Options -->
+          <div class="bg-controls-grid" style="margin-top: 12px;">
+            <div>
+              <label for="bg_size_select">Sizing Option</label>
+              <select id="bg_size_select" onchange="updateBgOption('size', this.value)">
+                <option value="cover" ${activeCustomizerState.size === 'cover' ? 'selected' : ''}>Cover (Fills entire card)</option>
+                <option value="contain" ${activeCustomizerState.size === 'contain' ? 'selected' : ''}>Contain (Shows full image)</option>
+                <option value="center" ${activeCustomizerState.size === 'center' ? 'selected' : ''}>Center (Natural size)</option>
+              </select>
+            </div>
+            <div>
+              <label for="bg_pos_select">Position</label>
+              <select id="bg_pos_select" onchange="updateBgOption('position', this.value)">
+                <option value="center" ${activeCustomizerState.position === 'center' ? 'selected' : ''}>Center</option>
+                <option value="top" ${activeCustomizerState.position === 'top' ? 'selected' : ''}>Top</option>
+                <option value="bottom" ${activeCustomizerState.position === 'bottom' ? 'selected' : ''}>Bottom</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Color Options Section -->
+        <div id="bg_color_controls" class="bg-section-box" style="${!isImageMode ? '' : 'display:none;'}">
+          <label style="margin-top: 0;">Choose Background Color</label>
+          <div class="bg-color-picker-row">
+            <input type="color" id="bg_color_picker" class="bg-color-input"
+              value="${escapeHtml(activeCustomizerState.color || '#16192b')}"
+              oninput="handleBgColorPickerChange(this.value)">
+            <input type="text" id="bg_color_text" class="bg-color-hex-text"
+              value="${escapeHtml(activeCustomizerState.color || '#16192b')}"
+              oninput="handleBgColorTextChange(this.value)"
+              placeholder="#16192b">
+          </div>
+
+          <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+            <span class="mut" style="font-size: 11px;">Presets:</span>
+            ${['#0f172a', '#1e1b4b', '#18181b', '#172554', '#064e3b', '#450a0a', '#3b0764', '#1f2937']
+              .map(
+                (c) => `<button type="button" style="width:22px; height:22px; border-radius:50%; background:${c}; border:1px solid rgba(255,255,255,0.25); cursor:pointer;" onclick="handleBgColorPickerChange('${c}')" title="${c}"></button>`
+              )
+              .join('')}
+          </div>
+        </div>
+
+        <!-- Readability & Overlay Controls -->
+        <div class="bg-section-box">
+          <div class="bg-controls-grid">
+            <div>
+              <label for="bg_overlay_slider" style="margin-top: 0; display: flex; justify-content: space-between;">
+                <span>Dark Overlay (Readability)</span>
+                <span id="bg_overlay_val" style="font-family: var(--font-mono);">${Math.round(activeCustomizerState.overlayOpacity * 100)}%</span>
+              </label>
+              <input type="range" id="bg_overlay_slider" min="0.2" max="0.95" step="0.05"
+                value="${activeCustomizerState.overlayOpacity}"
+                oninput="updateBgOverlayOpacity(this.value)"
+                style="width: 100%; cursor: pointer;">
+            </div>
+            <div>
+              <label for="bg_blur_slider" style="margin-top: 0; display: flex; justify-content: space-between;">
+                <span>Background Blur</span>
+                <span id="bg_blur_val" style="font-family: var(--font-mono);">${activeCustomizerState.blur}px</span>
+              </label>
+              <input type="range" id="bg_blur_slider" min="0" max="10" step="1"
+                value="${activeCustomizerState.blur}"
+                oninput="updateBgBlur(this.value)"
+                style="width: 100%; cursor: pointer;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="bg-actions-row">
+        <div>
+          ${
+            hasExisting
+              ? `<button type="button" class="btn btn--sm bad" onclick="handleRemoveBackground()">
+                  🗑️ Remove Background
+                </button>`
+              : ''
+          }
+        </div>
+        <div class="bg-actions-right">
+          <button type="button" class="btn btn--sm sec" onclick="closeModal()">
+            Cancel
+          </button>
+          <button type="button" class="btn btn--sm" onclick="handleSaveBackground()">
+            ✓ Apply & Save
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  openModal(modalHtml);
+  renderBgLivePreview();
+}
+
+function renderBgLivePreview() {
+  const slot = qs('#bg_live_preview_slot');
+  if (!slot || !activeCustomizerState.eventId) return;
+
+  const eventItem = getAllPublishedEvents().find((e) => e.id === activeCustomizerState.eventId) ||
+    getStorage('pending', []).find((e) => e.id === activeCustomizerState.eventId);
+  if (!eventItem) return;
+
+  const categoryColor = (EVENT_CATEGORIES.find((cat) => cat.k === eventItem.type) || {}).c || '#c8a96e';
+  const registrations = getStorage('regs', []);
+
+  // Pass active preview config directly into card builder
+  slot.innerHTML = createEventCardHtml(eventItem, registrations, categoryColor, activeCustomizerState);
+}
+
+function setBgCustomizerMode(mode) {
+  activeCustomizerState.mode = mode;
+  const imgBox = qs('#bg_image_controls');
+  const colorBox = qs('#bg_color_controls');
+  const tabBtns = qsa('.bg-mode-btn');
+
+  if (imgBox) imgBox.style.display = mode === 'image' ? '' : 'none';
+  if (colorBox) colorBox.style.display = mode === 'color' ? '' : 'none';
+
+  tabBtns.forEach((btn, idx) => {
+    btn.classList.toggle('active', (mode === 'image' && idx === 0) || (mode === 'color' && idx === 1));
+  });
+
+  renderBgLivePreview();
+}
+
+function handleBgFileUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  // Compress image via canvas to stay safely within localStorage limits
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const maxDim = 1000;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      activeCustomizerState.image = compressedDataUrl;
+      activeCustomizerState.mode = 'image';
+      renderBgLivePreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleBgUrlChange(url) {
+  activeCustomizerState.image = url.trim();
+  activeCustomizerState.mode = 'image';
+  renderBgLivePreview();
+}
+
+function handleBgColorPickerChange(colorVal) {
+  activeCustomizerState.color = colorVal;
+  activeCustomizerState.mode = 'color';
+  const textInput = qs('#bg_color_text');
+  const picker = qs('#bg_color_picker');
+  if (textInput) textInput.value = colorVal;
+  if (picker) picker.value = colorVal;
+  renderBgLivePreview();
+}
+
+function handleBgColorTextChange(colorVal) {
+  activeCustomizerState.color = colorVal.trim();
+  activeCustomizerState.mode = 'color';
+  const picker = qs('#bg_color_picker');
+  if (picker && /^#([0-9A-F]{3}){1,2}$/i.test(colorVal.trim())) {
+    picker.value = colorVal.trim();
+  }
+  renderBgLivePreview();
+}
+
+function updateBgOption(key, value) {
+  activeCustomizerState[key] = value;
+  renderBgLivePreview();
+}
+
+function updateBgOverlayOpacity(val) {
+  const num = parseFloat(val);
+  activeCustomizerState.overlayOpacity = num;
+  const label = qs('#bg_overlay_val');
+  if (label) label.textContent = `${Math.round(num * 100)}%`;
+  renderBgLivePreview();
+}
+
+function updateBgBlur(val) {
+  const num = parseInt(val, 10);
+  activeCustomizerState.blur = num;
+  const label = qs('#bg_blur_val');
+  if (label) label.textContent = `${num}px`;
+  renderBgLivePreview();
+}
+
+function handleSaveBackground() {
+  if (!activeCustomizerState.eventId) return;
+
+  const configToSave = {
+    mode: activeCustomizerState.mode,
+    image: activeCustomizerState.mode === 'image' ? activeCustomizerState.image : '',
+    color: activeCustomizerState.color,
+    size: activeCustomizerState.size,
+    position: activeCustomizerState.position,
+    overlayOpacity: activeCustomizerState.overlayOpacity,
+    blur: activeCustomizerState.blur
+  };
+
+  saveEventBgConfig(activeCustomizerState.eventId, configToSave);
+  closeModal();
+
+  // Re-render views so new background appears immediately
+  renderEvents();
+  renderOrg();
+
+  // Show brief feedback toast or confirmation inside view if org view is active
+  const outEl = qs('#o_out');
+  if (outEl) {
+    outEl.innerHTML = `
+      <div class="msg" style="margin-top:14px;">
+        ✓ Event card background updated successfully! View it in the Events Catalog.
+      </div>
+    `;
+    setTimeout(() => {
+      if (outEl && outEl.querySelector('.msg')) {
+        outEl.innerHTML = '';
+      }
+    }, 4500);
+  }
+}
+
+function handleRemoveBackground() {
+  if (!activeCustomizerState.eventId) return;
+  if (!confirm('Are you sure you want to remove the custom background for this event?')) return;
+
+  removeEventBgConfig(activeCustomizerState.eventId);
+  closeModal();
+
+  renderEvents();
+  renderOrg();
+
+  const outEl = qs('#o_out');
+  if (outEl) {
+    outEl.innerHTML = `
+      <div class="msg" style="margin-top:14px;">
+        ✓ Event card background removed. Card reverted to standard theme.
+      </div>
+    `;
+    setTimeout(() => {
+      if (outEl && outEl.querySelector('.msg')) {
+        outEl.innerHTML = '';
+      }
+    }, 4000);
   }
 }
 
@@ -2120,6 +2642,19 @@ window.setModalRating = setModalRating;
 window.submitFeedback = submitFeedback;
 window.deleteFeedback = deleteFeedback;
 window.renderAdminFeedback = renderAdminFeedback;
+window.onBgEventSelectChange = onBgEventSelectChange;
+window.openBgCustomizerForSelected = openBgCustomizerForSelected;
+window.openBgCustomizerModal = openBgCustomizerModal;
+window.setBgCustomizerMode = setBgCustomizerMode;
+window.handleBgFileUpload = handleBgFileUpload;
+window.handleBgUrlChange = handleBgUrlChange;
+window.handleBgColorPickerChange = handleBgColorPickerChange;
+window.handleBgColorTextChange = handleBgColorTextChange;
+window.updateBgOption = updateBgOption;
+window.updateBgOverlayOpacity = updateBgOverlayOpacity;
+window.updateBgBlur = updateBgBlur;
+window.handleSaveBackground = handleSaveBackground;
+window.handleRemoveBackground = handleRemoveBackground;
 
 // --- 17. Application Initialization ---
 let appInitialized = false;
