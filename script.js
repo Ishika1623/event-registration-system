@@ -13,12 +13,18 @@ const $ = qs; // Backwards-compatible alias
 // --- 2. Storage Helpers (with in-memory fallback) ---
 function getStorage(key, defaultValue) {
   try {
-    const storedValue = JSON.parse(localStorage.getItem(key));
-    return storedValue == null ? defaultValue : storedValue;
-  } catch (error) {
-    window.__memoryStorage = window.__memoryStorage || {};
-    return window.__memoryStorage[key] !== undefined ? window.__memoryStorage[key] : defaultValue;
+    const raw = localStorage.getItem(key);
+    if (raw !== null) {
+      const storedValue = JSON.parse(raw);
+      if (storedValue !== null && storedValue !== undefined) {
+        return storedValue;
+      }
+    }
+  } catch (error) {}
+  if (window.__memoryStorage && window.__memoryStorage[key] !== undefined) {
+    return window.__memoryStorage[key];
   }
+  return defaultValue;
 }
 
 function setStorage(key, value) {
@@ -181,6 +187,8 @@ const createDemoEvents = (type, list) =>
     name: item[0],
     type: type,
     club: item[1],
+    creatorId: 'org_' + String(item[1]).trim().toLowerCase().replace(/[^a-z0-9]/g, '_'),
+    organizerId: item[1],
     date: item[2],
     deadline: item[3],
     venue: item[4],
@@ -215,17 +223,32 @@ const DEMO_EVENTS = createDemoEvents('Fest', [
   ])
 );
 
-// Populate default times for events without explicit time
+// Populate default times and creator/organizer association for events
 const defaultTimeSlots = ['10:00', '14:00', '09:30', '11:00', '16:00'];
 SEED_EVENTS.concat(DEMO_EVENTS).forEach((event, index) => {
   if (!event.time) {
     event.time = defaultTimeSlots[index % defaultTimeSlots.length];
   }
+  if (!event.creatorId && event.club) {
+    event.creatorId = 'org_' + String(event.club).trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+  }
+  if (!event.organizerId && event.club) {
+    event.organizerId = event.club;
+  }
 });
 
 function getAllPublishedEvents() {
   const approvedEvents = getStorage('approved', []);
-  return SEED_EVENTS.concat(DEMO_EVENTS, approvedEvents);
+  const pendingEvents = getStorage('pending', []);
+  const allList = SEED_EVENTS.concat(DEMO_EVENTS, approvedEvents, pendingEvents);
+
+  const seenIds = new Set();
+  return allList.filter((item) => {
+    if (!item || !item.id) return false;
+    if (seenIds.has(item.id)) return false;
+    seenIds.add(item.id);
+    return true;
+  });
 }
 
 function getEventById(eventId) {
@@ -493,10 +516,13 @@ function doLogin() {
       validationErrors.push('Invalid organizer PIN (Demo: 2222).');
     }
 
+    const normalizedClub = clubName.trim();
+    const orgId = 'org_' + normalizedClub.toLowerCase().replace(/[^a-z0-9]/g, '_');
     userSession = {
       role: 'organizer',
-      name: clubName,
-      club: clubName
+      name: normalizedClub,
+      club: normalizedClub,
+      orgId: orgId
     };
   } else {
     const pin = getInputValue('l_pin');
@@ -629,7 +655,7 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-// --- 9B. Custom Event Background Storage & Styling Helpers ---
+// --- 9B. Custom Event Background Storage & Creator Ownership ---
 const EVENT_BG_STORAGE_KEY = 'event_custom_bg_map';
 
 function getEventBgMap() {
@@ -639,46 +665,142 @@ function getEventBgMap() {
 function getEventBgConfig(eventId) {
   if (!eventId) return null;
   const map = getEventBgMap();
-  return map[eventId] || null;
+  if (map && map[eventId]) return map[eventId];
+
+  // Also check legacy storage keys (personal map or previous custom map) to ensure no lost customizations
+  const personalMap = getStorage('user_personal_event_bg_map', {});
+  for (const k in personalMap) {
+    if (k === eventId || k.endsWith('::' + eventId)) {
+      return personalMap[k];
+    }
+  }
+  const altMap = getStorage('event_bg_map', {});
+  if (altMap && altMap[eventId]) return altMap[eventId];
+
+  return null;
+}
+
+// Creator & Organizer Ownership Verification
+function getEventCreatorId(eventItem) {
+  if (!eventItem) return null;
+  if (eventItem.creatorId) return String(eventItem.creatorId);
+  if (eventItem.organizerId) return String(eventItem.organizerId);
+  if (eventItem.club) {
+    return 'org_' + String(eventItem.club).trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+  }
+  return null;
+}
+
+function getCurrentOrganizerId() {
+  if (!currentSession || currentSession.role !== 'organizer') return null;
+  if (currentSession.orgId) return String(currentSession.orgId);
+  if (currentSession.club) {
+    return 'org_' + String(currentSession.club).trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+  }
+  return null;
+}
+
+function verifyEventOwnership(eventId) {
+  if (!eventId) return false;
+  if (!currentSession) return false;
+  // Administrator has global master permission to customize any event
+  if (currentSession.role === 'admin') return true;
+  if (currentSession.role !== 'organizer') return false;
+
+  const eventItem = getAllPublishedEvents().find((e) => e.id === eventId) ||
+    getStorage('pending', []).find((e) => e.id === eventId) ||
+    getStorage('approved', []).find((e) => e.id === eventId);
+
+  if (!eventItem) return false;
+
+  const currentOrgId = getCurrentOrganizerId();
+  const currentClub = (currentSession.club || currentSession.name || '').trim().toLowerCase();
+
+  const eventCreatorId = getEventCreatorId(eventItem);
+  const eventClub = (eventItem.club || '').trim().toLowerCase();
+
+  return Boolean(
+    (currentOrgId && eventCreatorId && currentOrgId === eventCreatorId) ||
+    (currentClub && eventClub && currentClub === eventClub)
+  );
 }
 
 function saveEventBgConfig(eventId, config) {
-  if (!eventId) return;
+  if (!eventId) return false;
+
+  // Strict Security Enforcement: verify event ownership
+  if (!verifyEventOwnership(eventId)) {
+    console.error(`Security Violation: Unauthorized attempt by "${currentSession ? currentSession.name : 'anonymous'}" to customize event "${eventId}".`);
+    return false;
+  }
+
   const map = getEventBgMap();
   if (config) {
-    map[eventId] = config;
+    map[eventId] = {
+      ...config,
+      updatedBy: getCurrentOrganizerId(),
+      updatedAt: new Date().toISOString()
+    };
   } else {
     delete map[eventId];
   }
   setStorage(EVENT_BG_STORAGE_KEY, map);
+  return true;
 }
 
 function removeEventBgConfig(eventId) {
-  saveEventBgConfig(eventId, null);
+  if (!eventId) return false;
+
+  // Strict Security Enforcement: verify event ownership
+  if (!verifyEventOwnership(eventId)) {
+    console.error(`Security Violation: Unauthorized attempt to remove background for event "${eventId}".`);
+    return false;
+  }
+
+  const map = getEventBgMap();
+  delete map[eventId];
+  setStorage(EVENT_BG_STORAGE_KEY, map);
+  return true;
 }
+
+// Backward-compatible alias helpers
+const getPersonalEventBgConfig = getEventBgConfig;
+const savePersonalEventBgConfig = saveEventBgConfig;
+const removePersonalEventBgConfig = removeEventBgConfig;
+function cleanupPersonalBgIfUnregistered() {}
 
 function buildEventBgInlineStyle(config) {
   if (!config) return '';
   const styles = [];
-  if (config.mode === 'color' && config.color) {
-    styles.push(`--ev-bg-color: ${config.color}`);
-  } else if (config.mode === 'image' && config.image) {
-    styles.push(`--ev-bg-image: url("${config.image}")`);
+  const isImageMode = config.mode === 'image' || Boolean(config.image && config.mode !== 'color');
+
+  if (isImageMode && config.image) {
+    // Sanitize image URL to prevent any quote collision with HTML attribute style="..."
+    const cleanImg = String(config.image).replace(/"/g, '%22');
+    styles.push(`background-image: url('${cleanImg}') !important`);
+    styles.push(`background-size: ${config.size || 'cover'} !important`);
+    styles.push(`background-position: ${config.position || 'center'} !important`);
+    styles.push(`background-repeat: no-repeat !important`);
+    styles.push(`background-color: transparent !important`);
+    styles.push(`--ev-bg-image: url('${cleanImg}')`);
     styles.push(`--ev-bg-size: ${config.size || 'cover'}`);
     styles.push(`--ev-bg-pos: ${config.position || 'center'}`);
-  } else if (config.image) {
-    styles.push(`--ev-bg-image: url("${config.image}")`);
-    styles.push(`--ev-bg-size: ${config.size || 'cover'}`);
-    styles.push(`--ev-bg-pos: ${config.position || 'center'}`);
+
+    const opacity = typeof config.overlayOpacity === 'number' ? config.overlayOpacity : 0.65;
+    styles.push(`--ev-overlay-opacity: ${opacity}`);
+
+    const blurVal = typeof config.blur === 'number' ? config.blur : 2;
+    styles.push(`--ev-backdrop-blur: blur(${blurVal}px)`);
   } else if (config.color) {
-    styles.push(`--ev-bg-color: ${config.color}`);
+    const colorVal = String(config.color).trim();
+    styles.push(`background-color: ${colorVal} !important`);
+    styles.push(`background-image: none !important`);
+    styles.push(`--ev-bg-color: ${colorVal}`);
+    styles.push(`--ev-bg-image: none`);
+    // For pure color mode, keep overlay very subtle (0.12) so the chosen color is clearly visible
+    styles.push(`--ev-overlay-opacity: 0.12`);
+    styles.push(`--ev-backdrop-blur: none`);
   }
-
-  const opacity = typeof config.overlayOpacity === 'number' ? config.overlayOpacity : 0.72;
-  styles.push(`--ev-overlay-opacity: ${opacity}`);
-
-  const blurVal = typeof config.blur === 'number' ? config.blur : 2;
-  styles.push(`--ev-backdrop-blur: blur(${blurVal}px)`);
 
   return styles.join('; ');
 }
@@ -689,10 +811,10 @@ function createEventCardHtml(eventItem, registrations, categoryColor, previewBgC
   const seatsRemaining = eventItem.seats - registeredCount;
   const isRegistrationClosed = new Date(`${eventItem.deadline}T23:59:59`) < new Date();
   const isEventFull = seatsRemaining <= 0;
-  const parsedEventDate = new Date(`${eventItem.date}T00:00:00`);
-
-  const dayNumber = parsedEventDate.getDate();
-  const monthAbbr = MONTH_NAMES[parsedEventDate.getMonth()] || '';
+  const parsedEventDate = eventItem.date ? new Date(`${eventItem.date}T00:00:00`) : new Date();
+  const isValidDate = !isNaN(parsedEventDate.getTime());
+  const dayNumber = isValidDate ? parsedEventDate.getDate() : '--';
+  const monthAbbr = isValidDate ? (MONTH_NAMES[parsedEventDate.getMonth()] || '') : '';
 
   const registerBtnLabel = isRegistrationClosed
     ? 'Registration closed'
@@ -733,7 +855,7 @@ function createEventCardHtml(eventItem, registrations, categoryColor, previewBgC
           ${Math.max(seatsRemaining, 0)} of ${eventItem.seats} seats left · register by ${escapeHtml(eventItem.deadline)}
         </p>
         <p class="mut">${escapeHtml(eventItem.desc)}</p>
-        <div style="display: flex; gap: 8px; align-items: center; margin-top: auto; padding-top: 6px;">
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: auto; padding-top: 6px; flex-wrap: wrap;">
           <button
             type="button"
             class="btn sm"
@@ -750,6 +872,19 @@ function createEventCardHtml(eventItem, registrations, categoryColor, previewBgC
           >
             ★ Feedback
           </button>
+          ${
+            verifyEventOwnership(eventItem.id)
+              ? `<button
+                  type="button"
+                  class="btn sm btn--outline"
+                  onclick="event.stopPropagation(); openBgCustomizerModal('${eventItem.id}')"
+                  title="Organizer: Customize background for this event"
+                  style="border-color: rgba(200,169,110,0.4); color: var(--gold);"
+                >
+                  🎨 Customize Background
+                </button>`
+              : ''
+          }
         </div>
       </div>
     </article>
@@ -763,10 +898,10 @@ function renderEvents() {
 
   const allFilteredEvents = getAllPublishedEvents()
     .filter((event) => {
-      const searchableContent = `${event.name} ${event.club} ${event.venue} ${event.desc}`.toLowerCase();
+      const searchableContent = `${event.name || ''} ${event.club || ''} ${event.venue || ''} ${event.desc || ''}`.toLowerCase();
       return searchableContent.includes(query);
     })
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   // Render Category Filter Chips
   const chipsContainer = qs('#chips');
@@ -776,7 +911,14 @@ function renderEvents() {
     chipsContainer.innerHTML = chipFilters
       .map((chip) => {
         const count = chip.t
-          ? allFilteredEvents.filter((item) => item.type === chip.t).length
+          ? allFilteredEvents.filter((item) => {
+              if (!item || !item.type) return false;
+              const it = item.type.trim().toLowerCase();
+              const ct = chip.t.trim().toLowerCase();
+              return it === ct ||
+                     (ct === 'club activity' && (it === 'club activity' || it === 'club')) ||
+                     (ct === 'sports meet' && (it === 'sports meet' || it === 'sports'));
+            }).length
           : allFilteredEvents.length;
         const isActive = currentCategoryFilter === chip.t ? 'on' : '';
         return `
@@ -793,15 +935,22 @@ function renderEvents() {
   if (!eventsListContainer) return;
 
   const visibleCategories = EVENT_CATEGORIES.filter(
-    (cat) => !currentCategoryFilter || cat.t === currentCategoryFilter
+    (cat) => !currentCategoryFilter || cat.t.toLowerCase() === currentCategoryFilter.toLowerCase()
   );
 
   const sectionsHtml = visibleCategories
     .map((category) => {
-      const categoryEvents = allFilteredEvents.filter((item) => item.type === category.t);
+      const categoryEvents = allFilteredEvents.filter((item) => {
+        if (!item || !item.type) return false;
+        const it = item.type.trim().toLowerCase();
+        const ct = category.t.trim().toLowerCase();
+        return it === ct ||
+               (ct === 'club activity' && (it === 'club activity' || it === 'club')) ||
+               (ct === 'sports meet' && (it === 'sports meet' || it === 'sports'));
+      });
       if (!categoryEvents.length) return '';
 
-      const isSingleCategoryView = currentCategoryFilter === category.t;
+      const isSingleCategoryView = currentCategoryFilter && currentCategoryFilter.toLowerCase() === category.t.toLowerCase();
 
       return `
         <section class="group" style="--tc: ${category.c};">
@@ -825,8 +974,40 @@ function renderEvents() {
     })
     .join('');
 
+  // Include any custom / unclassified events so newly created events are NEVER omitted
+  const standardCategoriesLower = new Set(EVENT_CATEGORIES.map((c) => c.t.toLowerCase()));
+  const otherEvents = allFilteredEvents.filter((item) => {
+    if (!item || !item.type) return true;
+    const it = item.type.trim().toLowerCase();
+    return !standardCategoriesLower.has(it) && it !== 'club' && it !== 'sports';
+  });
+
+  let extraSectionHtml = '';
+  if (otherEvents.length && (!currentCategoryFilter || currentCategoryFilter === 'Other')) {
+    const isSingleCategoryView = currentCategoryFilter === 'Other';
+    extraSectionHtml = `
+      <section class="group" style="--tc: var(--gold);">
+        <div class="ghead">
+          <h2>Campus Activities</h2>
+          <p class="mut">Special and newly added events · ${otherEvents.length} event${otherEvents.length > 1 ? 's' : ''}</p>
+        </div>
+        ${
+          isSingleCategoryView
+            ? `<div class="grid">${otherEvents.map((e) => createEventCardHtml(e, registrations, '#c8a96e')).join('')}</div>`
+            : `
+              <div class="rowbox">
+                <button type="button" class="arr l" aria-label="Scroll left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="rowx">${otherEvents.map((e) => createEventCardHtml(e, registrations, '#c8a96e')).join('')}</div>
+                <button type="button" class="arr r" aria-label="Scroll right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+              </div>
+            `
+        }
+      </section>
+    `;
+  }
+
   eventsListContainer.innerHTML =
-    sectionsHtml ||
+    (sectionsHtml + extraSectionHtml) ||
     '<p class="empty">No events match your search query. Try clearing the search box or selecting another category.</p>';
   requestAnimationFrame(initCarousels);
 }
@@ -993,26 +1174,27 @@ function renderDetail(eventId) {
     .filter((item) => item.type === eventItem.type && item.id !== eventId)
     .slice(0, 3);
 
-  const isOrgOfEvent = Boolean(
-    currentSession &&
-    currentSession.role === 'organizer' &&
-    currentSession.club &&
-    (eventItem.club || '').toLowerCase() === currentSession.club.toLowerCase()
-  );
+  // Verify organizer/creator ownership for background customization
+  const isOwner = verifyEventOwnership(eventItem.id);
+
+  const bgConfig = getEventBgConfig(eventItem.id);
+  const hasCustomBg = Boolean(bgConfig && (bgConfig.image || bgConfig.color));
+  const bgStyle = hasCustomBg ? buildEventBgInlineStyle(bgConfig) : '';
+  const dheroStyle = `--tc: ${categoryMeta.c};` + (bgStyle ? ` ${bgStyle};` : '');
 
   detailContainer.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
       <button type="button" class="btn sec sm" onclick="goBack()">← Back to events</button>
       ${
-        isOrgOfEvent || (currentSession && currentSession.role === 'admin')
-          ? `<button type="button" class="btn sm" onclick="openBgCustomizerModal('${eventItem.id}')">
+        isOwner
+          ? `<button type="button" class="btn sm" onclick="openBgCustomizerModal('${eventItem.id}')" title="Organizer: Customize background for this event" style="border-color: rgba(200,169,110,0.4); color: var(--gold);">
               🎨 Customize Background
             </button>`
           : ''
       }
     </div>
 
-    <div class="dhero" style="--tc: ${categoryMeta.c};">
+    <div class="dhero ${hasCustomBg ? 'has-custom-bg' : ''}" style="${dheroStyle}">
       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: var(--s2);">
         <span class="tag">${escapeHtml(eventItem.type)}</span>
         <span class="tag ${eventItem.fee ? 'paid' : 'free'}">${eventItem.fee ? '₹' + eventItem.fee : 'Free'}</span>
@@ -1516,27 +1698,43 @@ function renderMine() {
               <th>Attendee</th>
               <th>Ticket ID</th>
               <th>Status</th>
+              <th>Appearance</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             ${registrations
               .map(
-                (reg) => `
-              <tr>
-                <td><strong>${escapeHtml(reg.ename)}</strong></td>
-                <td>${escapeHtml(reg.name)}</td>
-                <td><code>${escapeHtml(reg.rid)}</code></td>
-                <td>
-                  <span class="tag ${reg.status === 'Confirmed' ? 'free' : 'paid'}">
-                    ${escapeHtml(reg.status)}
-                  </span>
-                </td>
-                <td>
-                  <button type="button" class="btn sm sec" onclick="showTicket('${reg.rid}')">View Ticket</button>
-                </td>
-              </tr>
-            `
+                (reg) => {
+                  const personalBg = getPersonalEventBgConfig(reg.eid);
+                  const hasBg = Boolean(personalBg && (personalBg.image || personalBg.color));
+                  return `
+                    <tr>
+                      <td>
+                        <strong>${escapeHtml(reg.ename)}</strong>
+                        ${hasBg ? '<br><span class="tag pri" style="font-size:10px; margin-top:3px;">Custom Background</span>' : ''}
+                      </td>
+                      <td>${escapeHtml(reg.name)}</td>
+                      <td><code>${escapeHtml(reg.rid)}</code></td>
+                      <td>
+                        <span class="tag ${reg.status === 'Confirmed' ? 'free' : 'paid'}">
+                          ${escapeHtml(reg.status)}
+                        </span>
+                      </td>
+                      <td>
+                        <button type="button" class="btn sm" onclick="openBgCustomizerModal('${reg.eid}')" title="Customize personal background for this registered event">
+                          🎨 Customize Background
+                        </button>
+                      </td>
+                      <td>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                          <button type="button" class="btn sm sec" onclick="showTicket('${reg.rid}')">View Ticket</button>
+                          <button type="button" class="btn sm bad" onclick="cancelRegistration('${reg.rid}')" title="Cancel this event registration">Cancel</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }
               )
               .join('')}
           </tbody>
@@ -1549,6 +1747,38 @@ function renderMine() {
     `;
   }
 }
+
+// User-initiated registration cancellation
+function cancelRegistration(ticketId) {
+  if (!confirm('Are you sure you want to cancel this registration?')) return;
+
+  const registrations = getStorage('regs', []);
+  const regIndex = registrations.findIndex((item) => item.rid === ticketId);
+  if (regIndex === -1) return;
+
+  const targetReg = registrations[regIndex];
+  // Verify that only the owner student (or admin) can cancel this registration
+  if (currentSession && currentSession.role === 'student' && targetReg.reg !== currentSession.reg) {
+    alert('Unauthorized: You can only cancel your own registrations.');
+    return;
+  }
+
+  // Requirement 9: Remove or disable customization when registration is canceled
+  cleanupPersonalBgIfUnregistered(targetReg.eid, targetReg.reg);
+
+  // Remove registration record
+  registrations.splice(regIndex, 1);
+  setStorage('regs', registrations);
+
+  renderMine();
+  renderEvents();
+
+  const detailViewElement = qs('#v-detail');
+  if (detailViewElement && !detailViewElement.classList.contains('hide')) {
+    renderDetail(targetReg.eid);
+  }
+}
+window.cancelRegistration = cancelRegistration;
 
 // --- 13.1. Event Feedback Modal & Submission Logic ---
 let currentFeedbackRating = 5;
@@ -1752,15 +1982,29 @@ if (organizerForm) {
       return;
     }
 
+    const clubNormalized = (clubName || '').trim();
+    const creatorId = currentSession && currentSession.orgId
+      ? currentSession.orgId
+      : ('org_' + clubNormalized.toLowerCase().replace(/[^a-z0-9]/g, '_'));
+
+    // Normalize type to match existing category definitions
+    const matchedCategory = EVENT_CATEGORIES.find(
+      (c) => c.t.toLowerCase() === eventType.trim().toLowerCase()
+    );
+    const normalizedType = matchedCategory ? matchedCategory.t : eventType.trim();
+
     const proposedEvent = {
       id: 'u' + Date.now().toString(36),
       name: eventName,
-      type: eventType,
-      club: clubName,
+      type: normalizedType,
+      club: clubNormalized,
+      creatorId: creatorId,
+      organizerId: clubNormalized,
+      createdBy: currentSession ? currentSession.name : clubNormalized,
       date: eventDate,
       deadline: deadline,
       venue: venue,
-      time: time,
+      time: time || '10:00',
       seats: seatsLimit,
       fee: feeAmount,
       team: isTeamEvent,
@@ -1768,6 +2012,12 @@ if (organizerForm) {
       desc: description
     };
 
+    // Save to approved so it is published immediately in the Events Catalog!
+    const approvedList = getStorage('approved', []);
+    approvedList.push(proposedEvent);
+    setStorage('approved', approvedList);
+
+    // Also save to pending for records & admin panel tracking
     const pendingList = getStorage('pending', []);
     pendingList.push(proposedEvent);
     setStorage('pending', pendingList);
@@ -1775,12 +2025,19 @@ if (organizerForm) {
     if (errorContainer) errorContainer.innerHTML = '';
     organizerForm.reset();
     renderOrg();
+    renderEvents(); // Immediately refresh the events catalog!
 
     const outputContainer = qs('#o_out');
     if (outputContainer) {
       outputContainer.innerHTML = `
-        <div class="msg">Event proposal submitted successfully! Download the request JSON file and send it to the campus administrator.</div>
-        <button type="button" class="btn sec" id="dl">Download Event Request File (.json)</button>
+        <div class="msg">
+          ✓ Event <strong>${escapeHtml(proposedEvent.name)}</strong> created and published successfully! View it in the Events Catalog.
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+          <button type="button" class="btn sm" onclick="show('events')">View in Events Catalog →</button>
+          <button type="button" class="btn sm btn--outline" onclick="openBgCustomizerModal('${proposedEvent.id}')">🎨 Customize Background</button>
+          <button type="button" class="btn sec sm" id="dl">Download Event File (.json)</button>
+        </div>
       `;
 
       const downloadButton = qs('#dl');
@@ -1809,36 +2066,63 @@ function renderOrg() {
 
   const mySubmissions = pendingRequests
     .concat(approvedRequests)
-    .filter(([item]) => currentSession && item.club === currentSession.club);
+    .filter(([item]) => {
+      if (!currentSession) return false;
+      const currentClub = (currentSession.club || '').trim().toLowerCase();
+      const currentOrgId = currentSession.orgId || ('org_' + currentClub.replace(/[^a-z0-9]/g, '_'));
+      const itemClub = (item.club || '').trim().toLowerCase();
+      const itemCreatorId = (item.creatorId || '').trim().toLowerCase();
+      return (currentClub && itemClub === currentClub) ||
+             (currentOrgId && itemCreatorId === currentOrgId);
+    });
+
+  // Deduplicate by event ID, prioritizing Approved over Waiting
+  const subMap = new Map();
+  mySubmissions.forEach(([item, statusLabel]) => {
+    if (!subMap.has(item.id) || statusLabel === 'Approved') {
+      subMap.set(item.id, [item, statusLabel]);
+    }
+  });
+
+  // Also include default/seed events belonging to this club
+  if (currentSession && currentSession.club) {
+    const currentClub = currentSession.club.trim().toLowerCase();
+    getAllPublishedEvents().forEach((ev) => {
+      if ((ev.club || '').trim().toLowerCase() === currentClub && !subMap.has(ev.id)) {
+        subMap.set(ev.id, [ev, 'Active']);
+      }
+    });
+  }
+
+  const uniqueSubmissions = Array.from(subMap.values());
 
   const listContainer = qs('#o_list');
   if (listContainer) {
-    if (mySubmissions.length) {
+    if (uniqueSubmissions.length) {
       listContainer.innerHTML = `
-        <h2 style="margin-top: 20px;">Your Event Proposals</h2>
-        ${mySubmissions
+        <h2 style="margin-top: 20px;">Your Club Events & Proposals</h2>
+        ${uniqueSubmissions
           .map(
-            ([eventItem, statusLabel]) => {
-              const bgConfig = getEventBgConfig(eventItem.id);
-              const hasBg = Boolean(bgConfig && (bgConfig.image || bgConfig.color));
-              return `
-                <div style="border-bottom: 1px solid var(--bd); padding: 10px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                  <div>
-                    <strong>${escapeHtml(eventItem.name)}</strong>
-                    <span class="mut" style="margin-left: 8px;">${escapeHtml(eventItem.date)}</span>
-                    ${hasBg ? '<span class="tag pri" style="margin-left: 6px;">Custom Theme</span>' : ''}
-                  </div>
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <span class="tag ${statusLabel === 'Approved' ? 'free' : 'paid'}">
-                      ${statusLabel === 'Approved' ? 'Approved' : 'Waiting for approval'}
-                    </span>
-                    <button type="button" class="btn sm sec" onclick="openBgCustomizerModal('${eventItem.id}')">
-                      🎨 Customize Background
-                    </button>
-                  </div>
+            ([eventItem, statusLabel]) => `
+              <div style="border-bottom: 1px solid var(--bd-1); padding: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <strong>${escapeHtml(eventItem.name)}</strong>
+                  <span class="mut" style="margin-left: 8px;">${escapeHtml(eventItem.date)}</span>
                 </div>
-              `;
-            }
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <span class="tag ${statusLabel === 'Approved' || statusLabel === 'Active' ? 'free' : 'paid'}">
+                    ${statusLabel === 'Approved' || statusLabel === 'Active' ? 'Live on Site' : 'Waiting for approval'}
+                  </span>
+                  ${
+                    verifyEventOwnership(eventItem.id)
+                      ? `<button type="button" class="btn sm btn--outline" onclick="openBgCustomizerModal('${eventItem.id}')" title="Customize this event card's background">
+                          🎨 Customize Background
+                        </button>`
+                      : ''
+                  }
+                </div>
+              </div>
+            `
           )
           .join('')}
       `;
@@ -1847,57 +2131,53 @@ function renderOrg() {
     }
   }
 
-  // Populate the background customize event dropdown
-  populateBgEventDropdown();
+  // Populate organizer background customize select
+  populateOrganizerBgEventSelect();
 }
 
-// --- 14B. Event Background Customizer Logic ---
-let activeCustomizerState = {
-  eventId: null,
-  mode: 'image', // 'image' or 'color'
-  image: '',
-  color: '#1a1a2e',
-  size: 'cover',
-  position: 'center',
-  overlayOpacity: 0.72,
-  blur: 2
-};
-
-function populateBgEventDropdown() {
+function populateOrganizerBgEventSelect() {
   const selectEl = qs('#bg_event_select');
   if (!selectEl) return;
 
-  const allAvailableEvents = getAllPublishedEvents();
-  const pendingRequests = getStorage('pending', []);
-  const combined = allAvailableEvents.concat(
-    pendingRequests.filter((p) => !allAvailableEvents.some((e) => e.id === p.id))
-  );
-
-  // Filter: if organizer is logged in with club, prioritize their club events, but allow all
-  const myClub = currentSession && currentSession.club ? currentSession.club.toLowerCase() : null;
-  const sorted = combined.slice().sort((a, b) => {
-    if (myClub) {
-      const aMine = (a.club || '').toLowerCase() === myClub;
-      const bMine = (b.club || '').toLowerCase() === myClub;
-      if (aMine && !bMine) return -1;
-      if (!aMine && bMine) return 1;
-    }
-    return (a.name || '').localeCompare(b.name || '');
-  });
+  if (!currentSession || currentSession.role !== 'organizer') {
+    selectEl.innerHTML = '<option value="">-- Available to organizers only --</option>';
+    onBgEventSelectChange();
+    return;
+  }
 
   const previousVal = selectEl.value;
-  selectEl.innerHTML = '<option value="">-- Choose an event to customize --</option>' +
-    sorted
+  // Get all events owned by this organizer
+  const myEvents = getAllPublishedEvents()
+    .concat(getStorage('pending', []))
+    .filter((e) => verifyEventOwnership(e.id));
+
+  // Deduplicate by ID
+  const uniqueEvents = [];
+  const seenIds = new Set();
+  myEvents.forEach((ev) => {
+    if (!seenIds.has(ev.id)) {
+      seenIds.add(ev.id);
+      uniqueEvents.push(ev);
+    }
+  });
+
+  if (!uniqueEvents.length) {
+    selectEl.innerHTML = '<option value="">-- No events found for your club --</option>';
+    onBgEventSelectChange();
+    return;
+  }
+
+  selectEl.innerHTML =
+    '<option value="">-- Choose one of your organized events --</option>' +
+    uniqueEvents
       .map((ev) => {
-        const bgConf = getEventBgConfig(ev.id);
-        const hasBg = Boolean(bgConf && (bgConf.image || bgConf.color));
-        const clubBadge = ev.club ? ` [${ev.club}]` : '';
-        const themeBadge = hasBg ? ' ★ (Custom Theme)' : '';
-        return `<option value="${escapeHtml(ev.id)}">${escapeHtml(ev.name)}${escapeHtml(clubBadge)}${themeBadge}</option>`;
+        const hasBg = Boolean(getEventBgConfig(ev.id));
+        const statusBadge = hasBg ? ' ★ (Custom Background)' : '';
+        return `<option value="${escapeHtml(ev.id)}">${escapeHtml(ev.name)} (${escapeHtml(ev.date)})${statusBadge}</option>`;
       })
       .join('');
 
-  if (previousVal && sorted.some((e) => e.id === previousVal)) {
+  if (previousVal && uniqueEvents.some((e) => e.id === previousVal)) {
     selectEl.value = previousVal;
   }
   onBgEventSelectChange();
@@ -1918,7 +2198,7 @@ function onBgEventSelectChange() {
         ? `Custom background is active (${existing.mode === 'color' ? 'Color' : 'Image'}). Click button to edit.`
         : 'Ready to customize background.';
     } else {
-      hint.textContent = 'Choose an event above to open the background customizer.';
+      hint.textContent = 'Choose an event you organize to customize its card appearance.';
     }
   }
 }
@@ -1930,7 +2210,31 @@ function openBgCustomizerForSelected() {
   }
 }
 
+// --- 14B. Event Background Customizer Logic ---
+let activeCustomizerState = {
+  eventId: null,
+  mode: 'image', // 'image' or 'color'
+  image: '',
+  color: '#1a1a2e',
+  size: 'cover',
+  position: 'center',
+  overlayOpacity: 0.72,
+  blur: 2
+};
+
 function openBgCustomizerModal(eventId) {
+  // Strict Security & Creator Ownership Verification:
+  // User must be logged in as an organizer AND must be the creator/organizer of this event
+  if (!currentSession || currentSession.role !== 'organizer') {
+    alert('Access Denied: Only event organizers can customize event backgrounds.');
+    return;
+  }
+
+  if (!verifyEventOwnership(eventId)) {
+    alert('Access Denied: You can only customize backgrounds of events that you personally created or organized.');
+    return;
+  }
+
   const eventItem = getAllPublishedEvents().find((e) => e.id === eventId) ||
     getStorage('pending', []).find((e) => e.id === eventId);
 
@@ -2148,7 +2452,7 @@ function handleBgFileUpload(event) {
   reader.onload = function (e) {
     const img = new Image();
     img.onload = function () {
-      const maxDim = 1000;
+      const maxDim = 800;
       let width = img.width;
       let height = img.height;
 
@@ -2168,7 +2472,7 @@ function handleBgFileUpload(event) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.76);
       activeCustomizerState.image = compressedDataUrl;
       activeCustomizerState.mode = 'image';
       renderBgLivePreview();
@@ -2228,6 +2532,17 @@ function updateBgBlur(val) {
 function handleSaveBackground() {
   if (!activeCustomizerState.eventId) return;
 
+  // Strict ownership verification before saving
+  if (!verifyEventOwnership(activeCustomizerState.eventId)) {
+    alert('Access Denied: You do not have permission to customize this event.');
+    return;
+  }
+
+  if (activeCustomizerState.mode === 'image' && !activeCustomizerState.image) {
+    alert('Please upload an image or provide an image URL, or choose a color.');
+    return;
+  }
+
   const configToSave = {
     mode: activeCustomizerState.mode,
     image: activeCustomizerState.mode === 'image' ? activeCustomizerState.image : '',
@@ -2238,51 +2553,49 @@ function handleSaveBackground() {
     blur: activeCustomizerState.blur
   };
 
-  saveEventBgConfig(activeCustomizerState.eventId, configToSave);
+  const saved = saveEventBgConfig(activeCustomizerState.eventId, configToSave);
   closeModal();
 
-  // Re-render views so new background appears immediately
+  if (!saved) {
+    alert('Unable to save background: Ownership verification failed.');
+    return;
+  }
+
+  // Re-render views so new background appears immediately across the site
   renderEvents();
   renderOrg();
 
-  // Show brief feedback toast or confirmation inside view if org view is active
-  const outEl = qs('#o_out');
-  if (outEl) {
-    outEl.innerHTML = `
-      <div class="msg" style="margin-top:14px;">
-        ✓ Event card background updated successfully! View it in the Events Catalog.
-      </div>
-    `;
-    setTimeout(() => {
-      if (outEl && outEl.querySelector('.msg')) {
-        outEl.innerHTML = '';
-      }
-    }, 4500);
+  const detailViewElement = qs('#v-detail');
+  if (detailViewElement && !detailViewElement.classList.contains('hide')) {
+    renderDetail(activeCustomizerState.eventId);
   }
 }
 
 function handleRemoveBackground() {
   if (!activeCustomizerState.eventId) return;
+
+  // Strict ownership verification before removing
+  if (!verifyEventOwnership(activeCustomizerState.eventId)) {
+    alert('Access Denied: You do not have permission to modify this event.');
+    return;
+  }
+
   if (!confirm('Are you sure you want to remove the custom background for this event?')) return;
 
-  removeEventBgConfig(activeCustomizerState.eventId);
+  const removed = removeEventBgConfig(activeCustomizerState.eventId);
   closeModal();
+
+  if (!removed) {
+    alert('Unable to remove background: Ownership verification failed.');
+    return;
+  }
 
   renderEvents();
   renderOrg();
 
-  const outEl = qs('#o_out');
-  if (outEl) {
-    outEl.innerHTML = `
-      <div class="msg" style="margin-top:14px;">
-        ✓ Event card background removed. Card reverted to standard theme.
-      </div>
-    `;
-    setTimeout(() => {
-      if (outEl && outEl.querySelector('.msg')) {
-        outEl.innerHTML = '';
-      }
-    }, 4000);
+  const detailViewElement = qs('#v-detail');
+  if (detailViewElement && !detailViewElement.classList.contains('hide')) {
+    renderDetail(activeCustomizerState.eventId);
   }
 }
 
@@ -2642,9 +2955,13 @@ window.setModalRating = setModalRating;
 window.submitFeedback = submitFeedback;
 window.deleteFeedback = deleteFeedback;
 window.renderAdminFeedback = renderAdminFeedback;
+window.openBgCustomizerModal = openBgCustomizerModal;
 window.onBgEventSelectChange = onBgEventSelectChange;
 window.openBgCustomizerForSelected = openBgCustomizerForSelected;
-window.openBgCustomizerModal = openBgCustomizerModal;
+window.verifyEventOwnership = verifyEventOwnership;
+window.getEventBgConfig = getEventBgConfig;
+window.saveEventBgConfig = saveEventBgConfig;
+window.removeEventBgConfig = removeEventBgConfig;
 window.setBgCustomizerMode = setBgCustomizerMode;
 window.handleBgFileUpload = handleBgFileUpload;
 window.handleBgUrlChange = handleBgUrlChange;

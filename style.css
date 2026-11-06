@@ -5,6 +5,8 @@
 
 /* ── 1. DESIGN TOKENS ─────────────────────────────────── */
 :root {
+  color-scheme: dark;
+
   /* Core palette */
   --black:        #000000;
   --dark-1:       #0a0a0a;
@@ -33,44 +35,45 @@
   --bd-3:         rgba(255,255,255,0.20);
 
   /* Status */
-  --green:        #4ade80;
-  --green-bg:     rgba(74,222,128,0.10);
+  --green:        #34d399;
+  --green-bg:     rgba(52,211,153,0.12);
   --red:          #f87171;
-  --red-bg:       rgba(248,113,113,0.10);
-  --blue:         #60a5fa;
-  --blue-bg:      rgba(96,165,250,0.10);
+  --red-bg:       rgba(248,113,113,0.12);
+  --blue:         #38bdf8;
+  --blue-bg:      rgba(56,189,248,0.12);
 
-  /* Typography */
-  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-body:    'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono:    'JetBrains Mono','Fira Code','Courier New',monospace;
+  /* Typography — Lu.ma & macOS native typography stack */
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'SF Mono', 'JetBrains Mono', 'Fira Code', 'Menlo', 'Courier New', monospace;
 
   /* Type scale */
-  --size-xs:      0.6875rem;    /* 11px */
-  --size-sm:      0.8125rem;    /* 13px */
+  --size-xs:      0.75rem;      /* 12px */
+  --size-sm:      0.84375rem;   /* 13.5px */
   --size-base:    0.9375rem;    /* 15px */
   --size-md:      1.0625rem;    /* 17px */
   --size-lg:      1.25rem;      /* 20px */
-  --size-xl:      1.5625rem;    /* 25px */
-  --size-2xl:     2rem;         /* 32px */
-  --size-3xl:     2.75rem;      /* 44px */
-  --size-4xl:     3.75rem;      /* 60px */
-  --size-5xl:     5rem;         /* 80px */
-  --size-hero:    clamp(3rem, 7vw, 5.5rem);
+  --size-xl:      1.5rem;       /* 24px */
+  --size-2xl:     1.875rem;     /* 30px */
+  --size-3xl:     2.5rem;       /* 40px */
+  --size-4xl:     3.25rem;      /* 52px */
+  --size-5xl:     4.25rem;      /* 68px */
+  --size-hero:    clamp(2.75rem, 6vw, 4.5rem);
 
   /* Spacing */
   --s1:  6px;   --s2:  12px;  --s3:  18px;  --s4:  24px;
   --s5:  32px;  --s6:  40px;  --s7:  56px;  --s8:  72px;
   --s9:  96px;  --s10: 128px;
 
-  /* Border radius */
-  --r1:  4px;   --r2:  8px;   --r3:  12px;
-  --r4:  18px;  --r5:  28px;  --r-pill: 999px;
+  /* Border radius — macOS squircle/smooth corners */
+  --r1:  6px;   --r2:  10px;  --r3:  14px;
+  --r4:  20px;  --r5:  28px;  --r-pill: 9999px;
 
-  /* Shadows */
-  --shadow-glow: 0 0 60px rgba(200,169,110,.12);
-  --shadow-card: 0 1px 0 rgba(255,255,255,.04), 0 8px 32px rgba(0,0,0,.6);
-  --shadow-panel:0 0 0 1px var(--bd-1), 0 16px 48px rgba(0,0,0,.5);
+  /* Shadows — macOS & Lu.ma layered soft ambient shadows */
+  --shadow-glow: 0 0 40px rgba(255,255,255,0.06);
+  --shadow-card: 0 4px 24px -2px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-panel:0 12px 36px -4px rgba(0,0,0,0.5), 0 0 0 1px var(--bd-1);
+  --shadow-window:0 24px 60px -8px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.12);
 
   /* Transitions */
   --ease:     cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -88,7 +91,13 @@
 
 /* ── 2. RESET ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; font-size: 16px; }
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
 
 body {
   font-family: var(--font-body);
@@ -99,6 +108,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 img, video { display: block; max-width: 100%; }
@@ -114,36 +125,47 @@ a:hover { color: var(--gold-light); }
 
 ::selection { background: var(--gold-dark); color: var(--white); }
 
-/* Global scrollbar hidden */
-* {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* Global scrollbar hidden across all elements & root viewport */
+html,
+body,
+*,
+*::before,
+*::after {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
+
+::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
 *::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 
-/* ── 3. HEADER ────────────────────────────────────────── */
+/* ── 3. HEADER — macOS Frosted Topbar ─────────────────── */
 #site-header {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 500;
   height: var(--header-h);
-  /* Start transparent; scroll class adds bg */
-  background: transparent;
+  background: rgba(12, 12, 14, 0.45);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   transition: background var(--med) var(--ease),
-              border-color var(--med) var(--ease),
-              backdrop-filter var(--med) var(--ease);
+              border-color var(--med) var(--ease);
 }
 
 #site-header.scrolled {
-  background: rgba(10,10,10,.88);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid var(--bd-1);
+  background: rgba(10, 10, 12, 0.88);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 .nav-inner {
@@ -162,54 +184,67 @@ a:hover { color: var(--gold-light); }
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  cursor: default;
+  cursor: pointer;
   user-select: none;
 }
 
 .logo-icon {
-  width: 34px;
-  height: 34px;
-  color: var(--gold);
+  width: 30px;
+  height: 30px;
+  color: var(--text-1);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r2);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.logo-icon.small { width: 24px; height: 24px; }
+.logo-icon.small { width: 22px; height: 22px; padding: 3px; }
 
 .logo-icon svg { width: 100%; height: 100%; }
 
 .logo-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .logo-name {
   font-family: var(--font-display);
-  font-size: var(--size-lg);
+  font-size: var(--size-base);
   font-weight: 700;
   color: var(--white);
-  letter-spacing: 0.04em;
+  letter-spacing: -0.01em;
 }
 
 .logo-sub {
   font-size: var(--size-xs);
-  font-weight: 400;
+  font-weight: 500;
   color: var(--text-3);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-/* Nav */
+/* Nav — Lu.ma pill segment tabs */
 nav {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
   justify-content: flex-end;
   overflow-x: auto;
-  scrollbar-width: none;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 6px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  max-width: fit-content;
+  margin-left: auto;
 }
-nav::-webkit-scrollbar { display: none; }
+nav::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 
 nav button {
   background: transparent;
@@ -217,36 +252,30 @@ nav button {
   color: var(--text-2);
   font-family: var(--font-body);
   font-size: var(--size-xs);
-  font-weight: 600;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  padding: 8px 16px;
-  border-radius: var(--r1);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
   cursor: pointer;
   white-space: nowrap;
   position: relative;
-  transition: color var(--fast) var(--ease);
+  transition: all var(--fast) var(--ease);
 }
 
 nav button::after {
-  content: "";
-  position: absolute;
-  bottom: 4px; left: 50%;
-  transform: translateX(-50%) scaleX(0);
-  width: 16px; height: 2px;
-  background: var(--gold);
-  border-radius: var(--r-pill);
-  transition: transform var(--fast) var(--ease);
+  display: none;
 }
 
-nav button:hover { color: var(--white); }
-nav button:hover::after { transform: translateX(-50%) scaleX(1); }
+nav button:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.08);
+}
 
 nav button.on {
-  color: var(--gold);
-}
-nav button.on::after {
-  transform: translateX(-50%) scaleX(1);
+  color: #0a0a0c;
+  background: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 
 /* Header right */
@@ -642,22 +671,25 @@ body.light-mode .celestial-moon {
   50%       { box-shadow: 0 0 16px var(--gold-light), 0 0 32px rgba(200,169,110,.4); }
 }
 
-/* Main headline */
+/* Main headline — Lu.ma punchy bold display */
 .hero-title {
   font-family: var(--font-display);
   font-size: var(--size-hero);
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
   color: var(--white);
   margin-bottom: var(--s3);
 }
 
-/* Italic em → gold accent (like "reality." in the reference) */
+/* Italic em → gradient highlight */
 .hero-title em {
   font-style: italic;
-  color: var(--gold);
-  font-weight: 400;
+  color: var(--gold-light);
+  font-weight: 600;
+  background: linear-gradient(135deg, #fff 10%, #e0c992 60%, #c8a96e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Thin horizontal rule below headline */
@@ -819,12 +851,14 @@ body.light-mode .celestial-moon {
 .search-box input,
 #q {
   width: 100%;
-  padding: 13px 18px 13px 48px;
+  padding: 12px 18px 12px 46px;
   font-size: var(--size-sm);
   font-weight: 400;
   color: var(--text-1);
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--bd-1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r-pill);
   outline: none;
   transition:
@@ -835,75 +869,74 @@ body.light-mode .celestial-moon {
 
 .search-box input:focus,
 #q:focus {
-  border-color: var(--gold-dark);
-  background: rgba(255,255,255,.06);
-  box-shadow: 0 0 0 3px rgba(200,169,110,.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
 }
 
 .search-box input::placeholder,
 #q::placeholder { color: var(--text-3); }
 
-/* ── 7. CATEGORY CHIPS ────────────────────────────────── */
+/* ── 7. CATEGORY CHIPS — Lu.ma Pill Filters ─────────────── */
 .chips {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   padding-bottom: var(--s4);
   margin-bottom: var(--s2);
-  scrollbar-width: none;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
-.chips::-webkit-scrollbar { display: none; }
+.chips::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 
 .chip {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--bd-1);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   color: var(--text-2);
   border-radius: var(--r-pill);
-  padding: 7px 18px;
-  font-size: var(--size-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
   cursor: pointer;
   white-space: nowrap;
-  transition:
-    background var(--fast) var(--ease),
-    border-color var(--fast) var(--ease),
-    color var(--fast) var(--ease);
+  transition: all var(--fast) var(--ease);
 }
 
 .chip:hover {
-  border-color: var(--bd-3);
+  border-color: rgba(255, 255, 255, 0.16);
   color: var(--white);
-  background: rgba(255,255,255,.07);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .chip span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
+  min-width: 18px;
   padding: 1px 6px;
   border-radius: var(--r-pill);
-  background: rgba(255,255,255,.08);
+  background: rgba(255, 255, 255, 0.08);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-3);
 }
 
 .chip.on {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: var(--dark-1);
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0c0c0f;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .chip.on span {
-  background: rgba(0,0,0,.2);
-  color: var(--dark-3);
+  background: rgba(0, 0, 0, 0.15);
+  color: #0c0c0f;
 }
 
 /* ── 8. EVENT CARDS ───────────────────────────────────── */
@@ -956,22 +989,26 @@ body.light-mode .celestial-moon {
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   padding: 4px 2px var(--s3);
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 .rowx::-webkit-scrollbar {
-  display: none;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .scroll-x,
 .scroll {
   overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 .scroll-x::-webkit-scrollbar,
 .scroll::-webkit-scrollbar {
-  display: none;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .rowx .ev { flex: 0 0 310px; scroll-snap-align: start; }
@@ -1001,47 +1038,57 @@ body.light-mode .celestial-moon {
 .arr.r { right: -14px; }
 @media (max-width: 680px) { .arr { display: none; } }
 
-/* Event card */
+/* Event card — Lu.ma Bento style with macOS glass/depth */
 .ev {
-  background: rgba(255,255,255,.025);
-  border: 1px solid var(--bd-1);
+  background: rgba(22, 22, 26, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r4);
   overflow: hidden;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 0 rgba(255,255,255,.03);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
   transition:
-    transform var(--med) var(--ease),
-    box-shadow var(--med) var(--ease),
-    border-color var(--med) var(--ease),
-    background var(--med) var(--ease);
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.22s ease,
+    background 0.22s ease;
   position: relative;
 }
 
-/* Top accent stripe */
+/* Subtle top line indicator */
 .ev::before {
   content: "";
   display: block;
   height: 2px;
   background: linear-gradient(90deg, var(--tc, var(--gold)) 0%, transparent 100%);
+  opacity: 0.9;
 }
 
 .ev:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 0 1px var(--bd-2);
-  background: rgba(255,255,255,.04);
-  border-color: var(--bd-2);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.16);
+  background: rgba(28, 28, 34, 0.85);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 /* Custom background styles on event cards */
 .ev.has-custom-bg {
-  position: relative;
-  background-color: var(--ev-bg-color, transparent);
-  background-image: var(--ev-bg-image, none);
-  background-size: var(--ev-bg-size, cover);
-  background-position: var(--ev-bg-pos, center);
-  background-repeat: no-repeat;
+  position: relative !important;
+  background-color: var(--ev-bg-color, transparent) !important;
+  background-image: var(--ev-bg-image, none) !important;
+  background-size: var(--ev-bg-size, cover) !important;
+  background-position: var(--ev-bg-pos, center) !important;
+  background-repeat: no-repeat !important;
+}
+
+.ev.has-custom-bg:hover {
+  background-color: var(--ev-bg-color, transparent) !important;
+  background-image: var(--ev-bg-image, none) !important;
+  background-size: var(--ev-bg-size, cover) !important;
+  background-position: var(--ev-bg-pos, center) !important;
 }
 
 .ev.has-custom-bg::after {
@@ -1050,8 +1097,8 @@ body.light-mode .celestial-moon {
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(10, 10, 15, var(--ev-overlay-opacity, 0.72)) 0%,
-    rgba(10, 10, 15, calc(var(--ev-overlay-opacity, 0.72) + 0.12)) 100%
+    rgba(10, 10, 15, var(--ev-overlay-opacity, 0.65)) 0%,
+    rgba(10, 10, 15, calc(var(--ev-overlay-opacity, 0.65) + 0.12)) 100%
   );
   backdrop-filter: var(--ev-backdrop-blur, blur(2px));
   -webkit-backdrop-filter: var(--ev-backdrop-blur, blur(2px));
@@ -1078,7 +1125,39 @@ body.light-mode .celestial-moon {
   background: rgba(10, 10, 15, 0.65);
 }
 
-body.light-mode .ev.has-custom-bg::after {
+/* Event detail view hero with custom background */
+.dhero.has-custom-bg {
+  position: relative !important;
+  background-color: var(--ev-bg-color, transparent) !important;
+  background-image: var(--ev-bg-image, none) !important;
+  background-size: var(--ev-bg-size, cover) !important;
+  background-position: var(--ev-bg-pos, center) !important;
+  background-repeat: no-repeat !important;
+  overflow: hidden;
+}
+
+.dhero.has-custom-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 15, var(--ev-overlay-opacity, 0.65)) 0%,
+    rgba(10, 10, 15, calc(var(--ev-overlay-opacity, 0.65) + 0.12)) 100%
+  );
+  backdrop-filter: var(--ev-backdrop-blur, blur(2px));
+  -webkit-backdrop-filter: var(--ev-backdrop-blur, blur(2px));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dhero.has-custom-bg > * {
+  position: relative;
+  z-index: 2;
+}
+
+body.light-mode .ev.has-custom-bg::after,
+body.light-mode .dhero.has-custom-bg::after {
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, var(--ev-overlay-opacity, 0.78)) 0%,
@@ -1252,55 +1331,56 @@ body.light-mode .bg-customizer-modal h3 {
 
 .ev-inner { display: flex; flex: 1; }
 
-/* Date column */
+/* Date column — Lu.ma calendar block */
 .date {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--dark-4);
+  background: rgba(12, 12, 15, 0.65);
   color: var(--white);
   min-width: 68px;
   padding: 16px 8px;
   text-align: center;
   flex-shrink: 0;
-  border-right: 1px solid var(--bd-1);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .date b {
   display: block;
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1;
-  color: var(--gold-light);
+  color: var(--white);
+  letter-spacing: -0.03em;
 }
 
 .date span {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-3);
-  margin-top: 5px;
+  color: #f59e0b; /* Warm Lu.ma style punchy date highlight */
+  margin-top: 4px;
 }
 
 /* Card body */
 .ev .in {
-  padding: 14px 16px;
+  padding: 16px 18px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .ev h3 {
   font-family: var(--font-display);
-  font-size: var(--size-base);
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--white);
   line-height: 1.35;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 .mut, .muted-text {
@@ -1315,30 +1395,29 @@ body.light-mode .bg-customizer-modal h3 {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--bd-1);
-  background: rgba(0,0,0,.15);
+  padding: 12px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
 }
 
-/* Tags */
+/* Tags — Lu.ma rounded pill badges */
 .tag {
   display: inline-flex;
   align-items: center;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
   border-radius: var(--r-pill);
   background: rgba(255,255,255,.06);
   color: var(--text-2);
   white-space: nowrap;
-  border: 1px solid var(--bd-1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.tag.free  { background: var(--green-bg);  color: var(--green); border-color: rgba(74,222,128,.2); }
-.tag.paid  { background: var(--blue-bg);   color: var(--blue);  border-color: rgba(96,165,250,.2); }
-.tag.pri   { background: var(--gold-faint); color: var(--gold);  border-color: rgba(200,169,110,.2); }
+.tag.free  { background: rgba(52, 211, 153, 0.12); color: #34d399; border-color: rgba(52, 211, 153, 0.24); }
+.tag.paid  { background: rgba(56, 189, 248, 0.12);  color: #38bdf8; border-color: rgba(56, 189, 248, 0.24); }
+.tag.pri   { background: rgba(255, 255, 255, 0.12); color: #ffffff; border-color: rgba(255, 255, 255, 0.2); }
 
 /* Seat progress bar */
 .seat-label { font-size: 10px; color: var(--text-3); margin-bottom: 4px; letter-spacing: 0.04em; }
@@ -1496,14 +1575,16 @@ body.light-mode .bg-customizer-modal h3 {
   transform: translateX(4px);
 }
 
-/* ── 10. PANELS ───────────────────────────────────────── */
+/* ── 10. PANELS — macOS Window / Lu.ma Bento Panels ───── */
 .panel {
-  background: var(--dark-3);
-  border: 1px solid var(--bd-1);
+  background: rgba(22, 22, 26, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r4);
   padding: var(--s5) var(--s6);
   margin-bottom: var(--s4);
-  box-shadow: var(--shadow-panel);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .panel-head {
@@ -1513,7 +1594,7 @@ body.light-mode .bg-customizer-modal h3 {
   gap: var(--s3);
   margin-bottom: var(--s5);
   padding-bottom: var(--s4);
-  border-bottom: 1px solid var(--bd-1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-wrap: wrap;
 }
 
@@ -1535,7 +1616,7 @@ body.light-mode .bg-customizer-modal h3 {
   letter-spacing: -0.02em;
   margin-bottom: var(--s4);
   padding-bottom: var(--s3);
-  border-bottom: 1px solid var(--bd-1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .sub-heading {
@@ -1543,14 +1624,15 @@ body.light-mode .bg-customizer-modal h3 {
   font-size: var(--size-lg);
   font-weight: 600;
   color: var(--white);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   margin-bottom: var(--s2);
 }
 
 .panel-icon {
   width: 32px; height: 32px;
   border-radius: var(--r2);
-  background: var(--gold-faint);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex; align-items: center; justify-content: center;
   font-size: var(--size-base);
   flex-shrink: 0;
@@ -1642,7 +1724,7 @@ label {
   .form-row, .row { grid-template-columns: 1fr; }
 }
 
-/* ── 12. BUTTONS ──────────────────────────────────────── */
+/* ── 12. BUTTONS — Lu.ma / macOS minimalist style ──────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -1650,82 +1732,90 @@ label {
   gap: 8px;
   font-family: var(--font-body);
   font-size: var(--size-xs);
-  font-weight: 700;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  border: 1px solid var(--gold);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--r-pill);
-  padding: 11px 28px;
+  padding: 8px 20px;
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
-  background: transparent;
-  color: var(--gold);
+  background: #ffffff;
+  color: #0b0b0e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   transition:
-    background var(--fast) var(--ease),
-    color var(--fast) var(--ease),
-    box-shadow var(--fast) var(--ease),
-    transform var(--fast) var(--spring);
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--gold);
-  color: var(--dark-1);
-  box-shadow: 0 0 24px rgba(200,169,110,.25);
+  background: #e6e6ea;
+  color: #0b0b0e;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
 
-.btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+.btn:active:not(:disabled) { transform: scale(0.97); box-shadow: none; }
 
-/* Secondary / outline */
+/* Secondary / outline — macOS glass button */
 .btn--outline, .btn.sec {
-  border-color: var(--bd-2);
-  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-1);
+  box-shadow: none;
 }
 
 .btn--outline:hover:not(:disabled),
 .btn.sec:hover:not(:disabled) {
-  background: rgba(255,255,255,.06);
+  background: rgba(255, 255, 255, 0.14);
   color: var(--white);
-  border-color: var(--bd-3);
-  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 /* Small */
 .btn--sm, .btn.sm {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  padding: 7px 16px;
+  font-size: 11.5px;
+  padding: 6px 14px;
 }
 
 /* Danger */
 .btn.bad {
-  border-color: rgba(248,113,113,.4);
-  color: var(--red);
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+  box-shadow: none;
 }
 
 .btn.bad:hover:not(:disabled) {
-  background: var(--red);
-  color: var(--white);
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
 }
 
 /* Success */
 .btn.ok {
-  border-color: rgba(74,222,128,.4);
-  color: var(--green);
+  background: rgba(52, 211, 153, 0.15);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #6ee7b7;
+  box-shadow: none;
 }
 
 .btn.ok:hover:not(:disabled) {
-  background: var(--green);
-  color: var(--dark-1);
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
 }
 
 /* Disabled */
 .btn:disabled {
-  border-color: var(--dark-6);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
   color: var(--text-3);
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* Link */
@@ -1877,13 +1967,13 @@ tbody tr:last-child td { border-bottom: none; }
   border: 1px solid rgba(200,169,110,.15);
 }
 
-/* ── 16. MODAL ────────────────────────────────────────── */
+/* ── 16. MODAL — macOS Window Style ────────────────────── */
 #modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.80);
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  background: rgba(0,0,0,.70);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   display: none;
   align-items: flex-start;
   justify-content: center;
@@ -1895,44 +1985,48 @@ tbody tr:last-child td { border-bottom: none; }
 #modal.open { display: flex; }
 
 #box {
-  background: var(--dark-3);
-  border: 1px solid var(--bd-2);
+  background: rgba(22, 22, 28, 0.94);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--r4);
   max-width: 520px;
   width: 100%;
-  padding: var(--s7) var(--s6);
+  padding: var(--s6) var(--s5);
   position: relative;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,.04),
-    0 32px 80px rgba(0,0,0,.8);
+    0 24px 60px -12px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.10);
   margin: auto;
-  animation: modalIn 0.4s var(--spring) both;
+  animation: modalIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes modalIn {
-  from { opacity: 0; transform: translateY(-28px) scale(.95); }
+  from { opacity: 0; transform: translateY(-16px) scale(.97); }
   to   { opacity: 1; transform: translateY(0)     scale(1); }
 }
 
-/* Close button */
+/* Close button — macOS traffic light red pill */
 .x {
   position: absolute;
   right: 16px;
   top: 16px;
-  width: 30px; height: 30px;
+  width: 28px; height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--bd-1);
-  background: rgba(255,255,255,.04);
-  color: var(--text-3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-2);
   font-size: 1rem;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: background var(--fast), color var(--fast), border-color var(--fast);
+  transition: all var(--fast) var(--ease);
 }
 
 .x:hover {
-  background: var(--red-bg);
-  color: var(--red);
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.4);
+}
   border-color: rgba(248,113,113,.25);
 }
 
@@ -2023,8 +2117,18 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ── 18. MISC ─────────────────────────────────────────── */
 .hide       { display: none !important; }
-.scroll-x   { overflow-x: auto; }
-.scroll     { overflow-x: auto; }
+.scroll-x,
+.scroll {
+  overflow-x: auto;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.scroll-x::-webkit-scrollbar,
+.scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
 .divider    { border: none; border-top: 1px solid var(--bd-1); }
 
 input[readonly] { background: var(--dark-4); color: var(--text-3); cursor: not-allowed; }
@@ -2202,6 +2306,7 @@ html.light-mode .theme-icon--sun  { display: block; }
 /* ── LIGHT MODE OVERRIDES ─────────────────────────────── */
 html.light-mode,
 body.light-mode {
+  color-scheme: light;
   background: #f5f3ef;
   color: #1a1a1a;
   --white:   #1a1a1a;

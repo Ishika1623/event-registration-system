@@ -8,11 +8,11 @@
     content="LPU Campus Events – Discover and register for all events at Lovely Professional University">
   <title>LPU Campus Events</title>
 
-  <!-- Fonts: Playfair Display (display serif) + Inter (body) -->
+  <!-- Fonts: Inter & Plus Jakarta Sans (Lu.ma / macOS typography) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
     rel="stylesheet">
 
   <link rel="stylesheet" href="style.css">
@@ -275,11 +275,11 @@
             <div class="form-group">
               <label for="o_type">Event Type</label>
               <select id="o_type">
-                <option>Fest</option>
-                <option>Workshop</option>
-                <option>Seminar</option>
-                <option>Club Activity</option>
-                <option>Sports Meet</option>
+                <option value="Fest">Fest</option>
+                <option value="Workshop">Workshop</option>
+                <option value="Seminar">Seminar</option>
+                <option value="Club activity">Club Activity</option>
+                <option value="Sports meet">Sports Meet</option>
               </select>
             </div>
             <div class="form-group">
@@ -337,24 +337,24 @@
         <div id="o_out"></div>
         <div id="o_list"></div>
 
-        <!-- Section: Customize Event Backgrounds -->
+        <!-- Section: Customize Event Backgrounds (Creator/Organizer Only) -->
         <div id="o_bg_section" class="panel" style="margin-top: 32px; padding: 20px; border: 1px solid var(--bd-1); border-radius: var(--r4); background: rgba(255,255,255,.02);">
           <div class="panel-head" style="margin-bottom: 12px; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div>
               <p class="section-label" style="margin: 0; font-size: var(--size-xs); color: var(--gold);">Card Appearance</p>
               <h2 class="panel-title" style="margin: 4px 0 0; font-size: var(--size-lg);">Customize Event Background</h2>
             </div>
-            <span class="tag pri">Organizer Tool</span>
+            <span class="tag pri">Creator Tool</span>
           </div>
           <p class="muted-text" style="margin-bottom: 16px; font-size: var(--size-sm);">
-            Select any event from your club (or any available event) to personalize its card with a custom background image or color.
+            As an organizer, you can customize the background image or color of your club's events.
           </p>
 
           <div class="form-row" style="margin-bottom: 16px;">
             <div class="form-group" style="grid-column: 1 / -1;">
-              <label for="bg_event_select">Select Event</label>
+              <label for="bg_event_select">Select Your Event</label>
               <select id="bg_event_select" onchange="onBgEventSelectChange()">
-                <option value="">-- Choose an event to customize --</option>
+                <option value="">-- Choose one of your organized events --</option>
               </select>
             </div>
           </div>
@@ -363,7 +363,7 @@
             <button type="button" class="btn" id="btnOpenBgModal" onclick="openBgCustomizerForSelected()" disabled>
               🎨 Customize Background
             </button>
-            <span id="bg_selected_hint" class="muted-text" style="font-size: var(--size-xs);">Choose an event above to open the background customizer.</span>
+            <span id="bg_selected_hint" class="muted-text" style="font-size: var(--size-xs);">Choose an event you organize to customize its card appearance.</span>
           </div>
         </div>
       </div>
