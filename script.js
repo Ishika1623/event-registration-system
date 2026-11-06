@@ -2910,18 +2910,19 @@ window.toggleTheme = toggleTheme;
 
     void main() {
       vec2 uv = v_uv;
-      float horizon = 0.28;
+      float horizon = 0.15;
 
       // Region above the water horizon remains completely transparent
-      if (uv.y > horizon + 0.012) {
+      if (uv.y >= horizon) {
         gl_FragColor = vec4(0.0);
         return;
       }
 
       // 3D perspective projection mapping: screen (uv.x, uv.y) -> world plane (x, z)
-      float depthFactor = clamp((horizon - uv.y) / horizon, 0.001, 1.0);
-      float z = 1.0 / (depthFactor * 3.8 + 0.08);
-      float x = (uv.x - 0.5) * z * 2.4;
+      float depthFactor = clamp((horizon - uv.y) / horizon, 0.0, 1.0);
+      float distFade = smoothstep(0.0, 0.20, depthFactor);
+      float z = 1.0 / (depthFactor * 3.4 + 0.08);
+      float x = (uv.x - 0.5) * z * 2.2;
       vec2 worldPos = vec2(x, z);
 
       vec2 mPos = vec2((u_mouse.x - 0.5) * 4.0, (1.0 - u_mouse.y) * 4.0 + 0.5);
@@ -2932,10 +2933,10 @@ window.toggleTheme = toggleTheme;
       float hX = getWaveHeight(worldPos + vec2(eps, 0.0), t, mPos);
       float hZ = getWaveHeight(worldPos + vec2(0.0, eps), t, mPos);
 
-      // Compute 3D surface normal vector
+      // Compute 3D surface normal vector with horizon distance attenuation
       float slopeX = (hX - hC) / eps;
       float slopeZ = (hZ - hC) / eps;
-      vec3 normal = normalize(vec3(-slopeX * 0.55, 1.0, -slopeZ * 0.55));
+      vec3 normal = normalize(vec3(-slopeX * 0.45 * distFade, 1.0, -slopeZ * 0.45 * distFade));
       vec3 viewDir = normalize(vec3(uv.x - 0.5, depthFactor * 0.9 + 0.15, 1.0));
 
       // Fresnel reflection factor
@@ -2945,17 +2946,18 @@ window.toggleTheme = toggleTheme;
       // 1. REALISTIC PILLARS & ARCHITECTURE REFLECTION
       vec3 reflColor = vec3(0.0);
       if (u_has_tex > 0.5) {
-        float reflDistortX = normal.x * (0.04 + depthFactor * 0.035);
-        float reflDistortY = normal.z * (0.03 + depthFactor * 0.025);
+        float reflDistortX = normal.x * (distFade * 0.04);
+        float reflDistortY = normal.z * (distFade * 0.03);
+        float texHorizon = 1.0 - horizon;
         vec2 baseReflUv = vec2(
           clamp(uv.x + reflDistortX, 0.001, 0.999),
-          clamp(horizon + (horizon - uv.y) * 1.6 + reflDistortY, 0.001, 0.999)
+          clamp(texHorizon - (horizon - uv.y) * 2.2 + reflDistortY, 0.001, 0.999)
         );
 
         // Glossy vertical streak blur (3-tap anisotropic sampling)
         vec3 tap0 = texture2D(u_scene_tex, baseReflUv).rgb;
-        vec2 tap1Uv = vec2(baseReflUv.x, clamp(baseReflUv.y + 0.012, 0.001, 0.999));
-        vec2 tap2Uv = vec2(baseReflUv.x, clamp(baseReflUv.y - 0.012, 0.001, 0.999));
+        vec2 tap1Uv = vec2(baseReflUv.x, clamp(baseReflUv.y + 0.012 * distFade, 0.001, 0.999));
+        vec2 tap2Uv = vec2(baseReflUv.x, clamp(baseReflUv.y - 0.012 * distFade, 0.001, 0.999));
         vec3 tap1 = texture2D(u_scene_tex, tap1Uv).rgb;
         vec3 tap2 = texture2D(u_scene_tex, tap2Uv).rgb;
         reflColor = tap0 * 0.5 + (tap1 + tap2) * 0.25;
@@ -2993,11 +2995,12 @@ window.toggleTheme = toggleTheme;
 
       // 6. FINAL COMPOSITE WITH FRESNEL LIGHTING
       vec3 waterWithRefl = mix(waterBody, reflColor * 0.85, fresnel * 0.75);
-      vec3 finalColor = waterWithRefl + (sunColor + moonColor) * (0.4 + fresnel * 0.6) + crestGlint;
+      vec3 specularLights = ((sunColor + moonColor) * (0.4 + fresnel * 0.6) + crestGlint) * distFade;
+      vec3 finalColor = waterWithRefl + specularLights;
 
-      // Soft atmospheric horizon mist
-      float edgeAlpha = smoothstep(horizon + 0.012, horizon - 0.018, uv.y);
-      gl_FragColor = vec4(finalColor, edgeAlpha * 0.94);
+      // Silky atmospheric horizon mist & smooth edge fade below waterline
+      float edgeAlpha = smoothstep(horizon, horizon - 0.025, uv.y);
+      gl_FragColor = vec4(finalColor, edgeAlpha * 0.95);
     }
   `;
 
@@ -3137,7 +3140,7 @@ window.toggleTheme = toggleTheme;
     function render2D() {
       const w = c.width = h.clientWidth;
       const ch = c.height = h.clientHeight;
-      const horizon = ch * 0.72; // 28% from bottom = 72% from top
+      const horizon = ch * 0.85; // 15% from bottom = 85% from top
       ctx.clearRect(0, 0, w, ch);
       const grad = ctx.createLinearGradient(0, horizon, 0, ch);
       grad.addColorStop(0, 'rgba(8, 25, 45, 0.85)');
