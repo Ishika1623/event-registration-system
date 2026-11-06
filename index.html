@@ -264,9 +264,8 @@
           into one extraordinary platform.
         </p>
 
-        <div class="hero-cta">
-          <button class="cta-circle" onclick="document.querySelector('#v-events').scrollIntoView({behavior:'smooth'})"
-            aria-label="Explore events">
+        <div class="hero-cta" onclick="navigateToEvents()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();navigateToEvents();}" role="button" tabindex="0" aria-label="Explore events">
+          <button class="cta-circle" aria-label="Explore events" tabindex="-1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>

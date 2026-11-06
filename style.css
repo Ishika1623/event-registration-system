@@ -1144,6 +1144,22 @@ body.light-mode .celestial-moon {
   display: flex;
   align-items: center;
   gap: 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hero-cta:hover .cta-circle {
+  border-color: var(--gold);
+  background: rgba(200,169,110,.14);
+  transform: scale(1.08);
+}
+
+.hero-cta:hover .cta-label {
+  color: var(--white);
+}
+
+body.light-mode .hero-cta:hover .cta-label {
+  color: var(--gold-dark);
 }
 
 .cta-circle {
@@ -1178,6 +1194,8 @@ body.light-mode .celestial-moon {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-2);
+  cursor: pointer;
+  transition: color var(--fast) var(--ease);
 }
 
 /* Scroll indicator — bottom left */

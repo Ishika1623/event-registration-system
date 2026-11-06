@@ -653,12 +653,33 @@ function show(viewName) {
   if (targetView === 'org') renderOrg();
 }
 
+function navigateToView(viewName, smoothScroll = true) {
+  show(viewName);
+  if (smoothScroll) {
+    const targetSection = document.getElementById('v-' + viewName);
+    if (targetSection) {
+      const header = document.getElementById('site-header');
+      const headerHeight = header ? header.offsetHeight : 70;
+      const targetTop = targetSection.getBoundingClientRect().top + window.pageYOffset - headerHeight - 12;
+      window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    }
+  }
+}
+window.navigateToView = navigateToView;
+
+function navigateToEvents() {
+  navigateToView('events', true);
+}
+window.navigateToEvents = navigateToEvents;
+
 const navContainer = qs('#nav');
 if (navContainer) {
   navContainer.onclick = (event) => {
-    const targetView = event.target.dataset.v;
+    const btn = event.target.closest('button[data-v]');
+    if (!btn) return;
+    const targetView = btn.dataset.v;
     if (targetView) {
-      show(targetView);
+      navigateToView(targetView, true);
       navContainer.classList.remove('mobile-open');
       const mb = document.getElementById('menuBtn');
       if (mb) mb.setAttribute('aria-expanded', 'false');
@@ -1184,7 +1205,7 @@ function goBack() {
   if (history.state && history.state.e) {
     history.back();
   } else {
-    show('events');
+    navigateToEvents();
   }
 }
 
@@ -3184,7 +3205,7 @@ window.toggleTheme = toggleTheme;
     sidebarNav.onclick = function (e) {
       const btn = e.target.closest('.sidebar-nav-item');
       if (btn && btn.dataset.v) {
-        show(btn.dataset.v);
+        navigateToView(btn.dataset.v, true);
         toggleSidebar(false);
       }
     };
@@ -3199,6 +3220,13 @@ window.toggleTheme = toggleTheme;
         show('events');
         if (typeof setType === 'function') {
           setType(cat);
+        }
+        const targetSection = document.getElementById('v-events');
+        if (targetSection) {
+          const header = document.getElementById('site-header');
+          const headerHeight = header ? header.offsetHeight : 70;
+          const targetTop = targetSection.getBoundingClientRect().top + window.pageYOffset - headerHeight - 12;
+          window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
         }
         toggleSidebar(false);
       }
