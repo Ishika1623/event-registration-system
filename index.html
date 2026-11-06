@@ -82,13 +82,106 @@
           </svg>
         </button>
 
-        <button class="hamburger" id="menuBtn" aria-label="Toggle menu" aria-expanded="false">
-          <span></span><span></span>
+        <button class="hamburger sidebar-toggle-btn" id="menuBtn" aria-label="Toggle navigation sidebar" aria-expanded="false" title="Toggle Sidebar">
+          <span></span><span></span><span></span>
         </button>
       </div>
 
     </div>
   </header>
+
+  <!-- ═══════════════════════════════════════
+     TOGGLE SIDEBAR DRAWER & BACKDROP
+═══════════════════════════════════════ -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+  <aside id="app-sidebar" class="app-sidebar" aria-label="Navigation Sidebar" aria-hidden="true">
+    <div class="sidebar-inner">
+
+      <!-- Header & Close -->
+      <div class="sidebar-head">
+        <div class="sidebar-brand">
+          <div class="logo-icon small">
+            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <polygon points="18,2 34,10 34,26 18,34 2,26 2,10" stroke="currentColor" stroke-width="2" fill="none"/>
+              <polygon points="18,7 29,13 29,23 18,29 7,23 7,13" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="18" cy="18" r="4" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="sidebar-brand-text">
+            <span class="sidebar-brand-title">LPU</span>
+            <span class="sidebar-brand-sub">Campus Events</span>
+          </div>
+        </div>
+
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar" title="Close sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- User Session / Role Card -->
+      <div class="sidebar-user-card" id="sidebarUserCard">
+        <!-- Injected dynamically by applyAuth() -->
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="sidebar-nav-group">
+        <p class="sidebar-group-title">Navigation</p>
+        <nav class="sidebar-nav" id="sidebarNav" aria-label="Sidebar main links">
+          <!-- Injected dynamically by applyAuth() -->
+        </nav>
+      </div>
+
+      <!-- Quick Category Shortcuts -->
+      <div class="sidebar-nav-group">
+        <p class="sidebar-group-title">Categories</p>
+        <div class="sidebar-cat-grid" id="sidebarCategories">
+          <button type="button" class="sidebar-cat-item" data-cat="">
+            <span class="cat-dot" style="background:var(--gold);"></span>
+            <span>All Categories</span>
+          </button>
+          <button type="button" class="sidebar-cat-item" data-cat="Fest">
+            <span class="cat-dot" style="background:#f26a21;"></span>
+            <span>🎪 Fests</span>
+          </button>
+          <button type="button" class="sidebar-cat-item" data-cat="Workshop">
+            <span class="cat-dot" style="background:#8b5cf6;"></span>
+            <span>🛠️ Workshops</span>
+          </button>
+          <button type="button" class="sidebar-cat-item" data-cat="Seminar">
+            <span class="cat-dot" style="background:#0f766e;"></span>
+            <span>🎓 Seminars</span>
+          </button>
+          <button type="button" class="sidebar-cat-item" data-cat="Club activity">
+            <span class="cat-dot" style="background:#3b5bdb;"></span>
+            <span>👥 Club Activities</span>
+          </button>
+          <button type="button" class="sidebar-cat-item" data-cat="Sports meet">
+            <span class="cat-dot" style="background:#2f9e44;"></span>
+            <span>🏆 Sports Meets</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer & Theme Toggle -->
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-theme-toggle" id="sidebarThemeBtn" onclick="toggleTheme()" aria-label="Toggle theme mode">
+          <span class="sidebar-theme-icon" id="sidebarThemeIcon">🌙</span>
+          <span class="sidebar-theme-label" id="sidebarThemeLabel">Dark Mode</span>
+          <span class="sidebar-theme-pill">Switch</span>
+        </button>
+
+        <div class="sidebar-meta">
+          <span>Lovely Professional University</span>
+          <small>Campus Events Portal · 2026</small>
+        </div>
+      </div>
+
+    </div>
+  </aside>
 
 
   <!-- ═══════════════════════════════════════

@@ -394,6 +394,52 @@ function applyAuth() {
       `;
     }
   }
+
+  // Populate Sidebar User Card & Navigation Tabs
+  const tabIcons = {
+    events: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    tickets: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><line x1="9" y1="12" x2="9.01" y2="12"/><line x1="15" y1="12" x2="15.01" y2="12"/></svg>',
+    org: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
+  };
+
+  const sidebarNav = qs('#sidebarNav');
+  if (sidebarNav) {
+    sidebarNav.innerHTML = tabs
+      .map((tab) => `
+        <button type="button" class="sidebar-nav-item" data-v="${tab[0]}">
+          <span class="sidebar-nav-icon">${tabIcons[tab[0]] || ''}</span>
+          <span class="sidebar-nav-label">${escapeHtml(tab[1])}</span>
+        </button>
+      `)
+      .join('');
+  }
+
+  const sidebarUserCard = qs('#sidebarUserCard');
+  if (sidebarUserCard) {
+    if (currentSession) {
+      const initial = (currentSession.name || 'U').charAt(0).toUpperCase();
+      sidebarUserCard.innerHTML = `
+        <div class="user-avatar-badge">${escapeHtml(initial)}</div>
+        <div class="user-info-wrap">
+          <div class="user-name" title="${escapeHtml(currentSession.name)}">${escapeHtml(currentSession.name)}</div>
+          <div class="user-role-pill">Signed in as ${escapeHtml(currentSession.role)}</div>
+        </div>
+        <button type="button" class="sidebar-logout-btn" onclick="doLogout(); if(window.toggleSidebar) window.toggleSidebar(false);" title="Log out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      `;
+    } else {
+      sidebarUserCard.innerHTML = `
+        <div class="user-avatar-badge guest">?</div>
+        <div class="user-info-wrap">
+          <div class="user-name">Guest Explorer</div>
+          <div class="user-role-pill">Not signed in</div>
+        </div>
+        <button type="button" class="btn sm" onclick="loginFromHeader(); if(window.toggleSidebar) window.toggleSidebar(false);">Log In</button>
+      `;
+    }
+  }
 }
 
 function loginFromHeader() {
@@ -594,6 +640,11 @@ function show(viewName) {
   qsa('#nav button').forEach((button) => {
     const buttonTarget = button.dataset.v;
     button.classList.toggle('on', buttonTarget === (targetView === 'detail' ? 'events' : targetView));
+  });
+
+  qsa('.sidebar-nav-item').forEach((button) => {
+    const buttonTarget = button.dataset.v;
+    button.classList.toggle('active', buttonTarget === (targetView === 'detail' ? 'events' : targetView));
   });
 
   if (targetView === 'events') renderEvents();
@@ -3031,6 +3082,11 @@ function toggleTheme() {
     btn.setAttribute('aria-label', label);
     btn.title = label;
   }
+
+  const sIcon = document.getElementById('sidebarThemeIcon');
+  const sLabel = document.getElementById('sidebarThemeLabel');
+  if (sIcon) sIcon.textContent = shouldBeLight ? '☀️' : '🌙';
+  if (sLabel) sLabel.textContent = shouldBeLight ? 'Light Mode' : 'Dark Mode';
 }
 window.toggleTheme = toggleTheme;
 
@@ -3066,24 +3122,95 @@ window.toggleTheme = toggleTheme;
   }
 })();
 
-// Mobile Hamburger Menu Toggle
-(function initMobileMenu() {
+// --- 20. Toggle Sidebar Drawer System ---
+(function initToggleSidebar() {
   const menuBtn = document.getElementById('menuBtn');
-  const nav = document.getElementById('nav');
-  if (!menuBtn || !nav) return;
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const closeBtn = document.getElementById('sidebarCloseBtn');
+  const sidebarNav = document.getElementById('sidebarNav');
+  const catGrid = document.getElementById('sidebarCategories');
 
-  menuBtn.onclick = function (e) {
-    e.stopPropagation();
-    const isOpen = nav.classList.toggle('mobile-open');
-    menuBtn.setAttribute('aria-expanded', String(isOpen));
-  };
+  function toggleSidebar(forceState) {
+    if (!sidebar) return;
+    const isCurrentlyOpen = sidebar.classList.contains('open');
+    const willOpen = typeof forceState === 'boolean' ? forceState : !isCurrentlyOpen;
 
-  document.addEventListener('click', function (e) {
-    if (!nav.contains(e.target) && !menuBtn.contains(e.target)) {
-      nav.classList.remove('mobile-open');
-      menuBtn.setAttribute('aria-expanded', 'false');
+    sidebar.classList.toggle('open', willOpen);
+    sidebar.setAttribute('aria-hidden', String(!willOpen));
+
+    if (backdrop) {
+      backdrop.classList.toggle('open', willOpen);
+    }
+    if (menuBtn) {
+      menuBtn.setAttribute('aria-expanded', String(willOpen));
+      menuBtn.classList.toggle('is-active', willOpen);
+    }
+    document.body.classList.toggle('sidebar-locked', willOpen);
+  }
+  window.toggleSidebar = toggleSidebar;
+
+  // Toggle button in header
+  if (menuBtn) {
+    menuBtn.onclick = function (e) {
+      e.stopPropagation();
+      toggleSidebar();
+    };
+  }
+
+  // Close button inside sidebar
+  if (closeBtn) {
+    closeBtn.onclick = function () {
+      toggleSidebar(false);
+    };
+  }
+
+  // Backdrop overlay click
+  if (backdrop) {
+    backdrop.onclick = function () {
+      toggleSidebar(false);
+    };
+  }
+
+  // Pressing Escape closes sidebar
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && sidebar && sidebar.classList.contains('open')) {
+      toggleSidebar(false);
     }
   });
+
+  // Clicking any sidebar navigation link
+  if (sidebarNav) {
+    sidebarNav.onclick = function (e) {
+      const btn = e.target.closest('.sidebar-nav-item');
+      if (btn && btn.dataset.v) {
+        show(btn.dataset.v);
+        toggleSidebar(false);
+      }
+    };
+  }
+
+  // Clicking any category shortcut inside sidebar
+  if (catGrid) {
+    catGrid.onclick = function (e) {
+      const item = e.target.closest('.sidebar-cat-item');
+      if (item) {
+        const cat = item.dataset.cat || '';
+        show('events');
+        if (typeof setType === 'function') {
+          setType(cat);
+        }
+        toggleSidebar(false);
+      }
+    };
+  }
+
+  // Sync sidebar theme button on load
+  const isLight = document.body.classList.contains('light-mode');
+  const sIcon = document.getElementById('sidebarThemeIcon');
+  const sLabel = document.getElementById('sidebarThemeLabel');
+  if (sIcon) sIcon.textContent = isLight ? '☀️' : '🌙';
+  if (sLabel) sLabel.textContent = isLight ? 'Light Mode' : 'Dark Mode';
 })();
 
 // --- 21. Multi-Layer 3D Depth & Mouse Parallax ---
